@@ -7,31 +7,26 @@ This document provides a comprehensive summary of frontend interview topics base
 1. [JavaScript](#javascript)
 
    - [Data Types and Storage](#data-types-and-storage)
+   - [Debounce and Throttle](#debounce-and-throttle)
+   - [Function Context (bind, call, apply)](#function-context-bind-call-apply)
+   - [Closures](#closures)
+   - [Event Loop](#event-loop)
+   - [Prototypes and Prototype Chain](#prototypes-and-prototype-chain)
    - [Equality Operators (== vs ===)](#equality-operators--vs-)
    - [Type Conversion](#type-conversion)
    - [typeof vs instanceof](#typeof-vs-instanceof)
    - [Scope and Context](#scope-and-context)
    - [this Keyword](#this-keyword)
    - [Execution Context and Call Stack](#execution-context-and-call-stack)
-   - [Closures](#closures)
    - [Prototypes and Inheritance](#prototypes-and-inheritance)
    - [new Operator](#new-operator)
-   - [Function Context (bind, call, apply)](#function-context-bind-call-apply)
-   - [Event Loop](#event-loop)
-   - [Debounce and Throttle](#debounce-and-throttle)
    - [Deep vs Shallow Copy](#deep-vs-shallow-copy)
    - [Memory Leaks](#memory-leaks)
-   - [Array APIs](#array-apis)
-   - [String APIs](#string-apis)
-   - [Regular Expressions](#regular-expressions)
-   - [AJAX and HTTP Requests](#ajax-and-http-requests)
-   - [DOM Manipulation](#dom-manipulation)
    - [BOM (Browser Object Model)](#bom-browser-object-model)
    - [Event Model and Event Delegation](#event-model-and-event-delegation)
    - [Functional Programming](#functional-programming)
    - [Function Caching](#function-caching)
    - [Tail Recursion](#tail-recursion)
-   - [JavaScript Data Structures](#javascript-data-structures)
    - [Floating Point Precision](#floating-point-precision)
    - [Security Considerations](#security-considerations)
    - [Single Sign-On (SSO)](#single-sign-on-sso)
@@ -653,7 +648,7 @@ first();
 
 **Prototype Chain:**
 
-```javascript
+```js
 function Animal(name) {
   this.name = name;
 }
@@ -681,7 +676,7 @@ dog.speak(); // "Rex barks"
 
 **ES6 Class Syntax:**
 
-```javascript
+```js
 class Animal {
   constructor(name) {
     this.name = name;
@@ -718,7 +713,7 @@ class Dog extends Animal {
 
 **Custom `new` Implementation:**
 
-```javascript
+```js
 function myNew(constructor, ...args) {
   // Create new object with constructor's prototype
   const obj = Object.create(constructor.prototype);
@@ -745,7 +740,7 @@ const person2 = myNew(Person, "Jane");
 
 **Shallow Copy Methods:**
 
-```javascript
+```js
 // Object.assign
 const shallow1 = Object.assign({}, original);
 
@@ -759,7 +754,7 @@ const arrShallow2 = originalArray.slice();
 
 **Deep Copy Methods:**
 
-```javascript
+```js
 // JSON method (limited - no functions, dates, etc.)
 const deep1 = JSON.parse(JSON.stringify(original));
 
@@ -783,7 +778,7 @@ const deep2 = _.cloneDeep(original);
 
 **Demonstration:**
 
-```javascript
+```js
 const original = {
   name: "John",
   address: { city: "New York", zip: "10001" }
@@ -806,7 +801,7 @@ console.log(deep.address.city); // "New York" (independent copy)
 
 1. **Global Variables:**
 
-```javascript
+```js
 // Bad - creates global variable
 function createLeak() {
   leak = "I'm global!"; // Missing var/let/const
@@ -820,7 +815,7 @@ function noLeak() {
 
 2. **Event Listeners:**
 
-```javascript
+```js
 // Bad - listener not removed
 element.addEventListener("click", handler);
 
@@ -840,7 +835,7 @@ controller.abort();
 
 3. **Timers:**
 
-```javascript
+```js
 // Bad - timer keeps running
 const timer = setInterval(() => {
   // Some operation
@@ -855,7 +850,7 @@ clearInterval(timer);
 
 4. **Closures:**
 
-```javascript
+```js
 // Bad - unnecessary closure retention
 function attachListeners() {
   const largeData = new Array(1000000).fill("data");
@@ -877,347 +872,23 @@ function attachListeners() {
 }
 ```
 
-### Regular Expressions
-
-**Pattern matching and text processing with regex.**
-
-**Basic Patterns:**
-
-```javascript
-// Literal notation
-const regex1 = /pattern/flags;
-
-// Constructor notation
-const regex2 = new RegExp('pattern', 'flags');
-
-// Common flags
-// g - global (find all matches)
-// i - case insensitive
-// m - multiline
-// s - dotall (. matches newlines)
-```
-
-**Common Methods:**
-
-```javascript
-const text = "The quick brown fox jumps over the lazy dog";
-const pattern = /quick|lazy/gi;
-
-// Test for match
-pattern.test(text); // true
-
-// Find matches
-text.match(pattern); // ["quick", "lazy"]
-text.search(pattern); // 4 (index of first match)
-
-// Replace with regex
-text.replace(/quick/gi, "slow"); // "The slow brown fox..."
-
-// Split with regex
-"a,b;c:d".split(/[,;:]/); // ["a", "b", "c", "d"]
-```
-
-**Practical Examples:**
-
-```javascript
-// Email validation
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-emailRegex.test("user@example.com"); // true
-
-// Phone number extraction
-const phoneRegex = /\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
-"Call (555) 123-4567 or 555.987.6543".match(phoneRegex);
-
-// URL validation
-const urlRegex =
-  /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
-
-// Password strength (8+ chars, uppercase, lowercase, number, special)
-const passwordRegex =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-```
-
-### AJAX and HTTP Requests
-
-**Making asynchronous HTTP requests in JavaScript.**
-
-**XMLHttpRequest (Legacy):**
-
-```javascript
-function makeRequest(url, method = "GET", data = null) {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-
-    xhr.open(method, url);
-    xhr.setRequestHeader("Content-Type", "application/json");
-
-    xhr.onload = function () {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve(JSON.parse(xhr.responseText));
-      } else {
-        reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
-      }
-    };
-
-    xhr.onerror = () => reject(new Error("Network error"));
-
-    xhr.send(data ? JSON.stringify(data) : null);
-  });
-}
-```
-
-**Fetch API (Modern):**
-
-```javascript
-// Basic GET request
-async function fetchData(url) {
-  try {
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Fetch error:", error);
-    throw error;
-  }
-}
-
-// POST request with data
-async function postData(url, data) {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer token"
-    },
-    body: JSON.stringify(data)
-  });
-
-  return response.json();
-}
-
-// File upload
-async function uploadFile(url, file) {
-  const formData = new FormData();
-  formData.append("file", file);
-
-  const response = await fetch(url, {
-    method: "POST",
-    body: formData // Don't set Content-Type for FormData
-  });
-
-  return response.json();
-}
-```
-
-**Request Interceptors and Error Handling:**
-
-```javascript
-class ApiClient {
-  constructor(baseURL) {
-    this.baseURL = baseURL;
-    this.defaultHeaders = {
-      "Content-Type": "application/json"
-    };
-  }
-
-  async request(endpoint, options = {}) {
-    const url = `${this.baseURL}${endpoint}`;
-    const config = {
-      headers: { ...this.defaultHeaders, ...options.headers },
-      ...options
-    };
-
-    try {
-      const response = await fetch(url, config);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error("API request failed:", error);
-      throw error;
-    }
-  }
-
-  get(endpoint, options) {
-    return this.request(endpoint, { method: "GET", ...options });
-  }
-
-  post(endpoint, data, options) {
-    return this.request(endpoint, {
-      method: "POST",
-      body: JSON.stringify(data),
-      ...options
-    });
-  }
-}
-
-// Usage
-const api = new ApiClient("https://api.example.com");
-const users = await api.get("/users");
-const newUser = await api.post("/users", {
-  name: "John",
-  email: "john@example.com"
-});
-```
-
-### DOM Manipulation
-
-**Interacting with the Document Object Model.**
-
-**Element Selection:**
-
-```javascript
-// Single element
-const element = document.getElementById("myId");
-const element2 = document.querySelector(".myClass");
-const element3 = document.querySelector('[data-id="123"]');
-
-// Multiple elements
-const elements = document.getElementsByClassName("myClass");
-const elements2 = document.querySelectorAll(".myClass");
-const elements3 = document.getElementsByTagName("div");
-```
-
-**Element Creation and Modification:**
-
-```javascript
-// Create elements
-const div = document.createElement("div");
-const text = document.createTextNode("Hello World");
-
-// Set attributes and properties
-div.id = "myDiv";
-div.className = "container";
-div.setAttribute("data-id", "123");
-div.style.backgroundColor = "blue";
-
-// Modify content
-div.textContent = "Text content";
-div.innerHTML = "<span>HTML content</span>";
-
-// Add to DOM
-document.body.appendChild(div);
-document.body.insertBefore(div, existingElement);
-```
-
-**Event Handling:**
-
-```javascript
-// Add event listeners
-element.addEventListener("click", handleClick);
-element.addEventListener("click", handleClick, { once: true });
-
-// Event delegation
-document.addEventListener("click", function (event) {
-  if (event.target.matches(".button")) {
-    handleButtonClick(event);
-  }
-});
-
-// Remove event listeners
-element.removeEventListener("click", handleClick);
-
-// Custom events
-const customEvent = new CustomEvent("myEvent", {
-  detail: { message: "Hello" }
-});
-element.dispatchEvent(customEvent);
-```
-
-**DOM Traversal:**
-
-```javascript
-const element = document.querySelector(".target");
-
-// Parent/child relationships
-const parent = element.parentNode;
-const children = element.children;
-const firstChild = element.firstElementChild;
-const lastChild = element.lastElementChild;
-
-// Siblings
-const nextSibling = element.nextElementSibling;
-const prevSibling = element.previousElementSibling;
-
-// Searching within element
-const descendant = element.querySelector(".descendant");
-const descendants = element.querySelectorAll(".descendant");
-```
-
 ### BOM (Browser Object Model)
 
 **Browser-specific objects and APIs for interacting with the browser environment.**
 
 **Window Object:**
 
-```javascript
+```js
 // Window properties
 window.innerWidth; // Viewport width
 window.innerHeight; // Viewport height
 window.outerWidth; // Browser window width
 window.outerHeight; // Browser window height
-
-// Window methods
-window.open("url", "name", "features");
-window.close();
-window.focus();
-window.blur();
-
-// Dialogs
-window.alert("Message");
-const result = window.confirm("Are you sure?");
-const input = window.prompt("Enter value:", "default");
-```
-
-**Location Object:**
-
-```javascript
-// Current URL information
-location.href; // Full URL
-location.protocol; // "https:"
-location.host; // "example.com:8080"
-location.hostname; // "example.com"
-location.port; // "8080"
-location.pathname; // "/path/page"
-location.search; // "?param=value"
-location.hash; // "#section"
-
-// Navigation
-location.assign("newURL"); // Navigate to new URL
-location.replace("newURL"); // Replace current URL
-location.reload(); // Reload page
-```
-
-**History Object:**
-
-```javascript
-// Navigation history
-history.length; // Number of entries
-history.back(); // Go back
-history.forward(); // Go forward
-history.go(-2); // Go back 2 pages
-
-// HTML5 History API
-history.pushState(state, title, url);
-history.replaceState(state, title, url);
-
-// Listen for history changes
-window.addEventListener("popstate", function (event) {
-  console.log("History changed:", event.state);
-});
 ```
 
 **Navigator Object:**
 
-```javascript
+```js
 // Browser information
 navigator.userAgent; // Browser string
 navigator.platform; // Operating system
@@ -1241,7 +912,7 @@ navigator.geolocation.getCurrentPosition(
 
 **Event Flow:**
 
-```javascript
+```js
 // Event phases:
 // 1. Capturing phase (document → target)
 // 2. Target phase (at target element)
@@ -1253,7 +924,7 @@ element.addEventListener("click", handler, false); // Bubbling (default)
 
 **Event Object:**
 
-```javascript
+```js
 function handleEvent(event) {
   // Event properties
   event.type; // Event type ('click', 'keydown', etc.)
@@ -1283,7 +954,7 @@ function handleEvent(event) {
 
 **Event Delegation:**
 
-```javascript
+```js
 // Instead of adding listeners to many elements
 document.querySelectorAll(".button").forEach((button) => {
   button.addEventListener("click", handleClick);
@@ -1311,7 +982,7 @@ document.addEventListener("click", function (event) {
 
 **Custom Events:**
 
-```javascript
+```js
 // Create custom event
 const customEvent = new CustomEvent("userLogin", {
   detail: {
@@ -1363,7 +1034,7 @@ class EventEmitter {
 
 **Pure Functions:**
 
-```javascript
+```js
 // Pure function - same input always produces same output, no side effects
 function add(a, b) {
   return a + b;
@@ -1383,7 +1054,7 @@ function pureIncrement(value) {
 
 **Higher-Order Functions:**
 
-```javascript
+```js
 // Function that takes other functions as arguments
 function withLogging(fn) {
   return function (...args) {
@@ -1410,7 +1081,7 @@ const triple = createMultiplier(3);
 
 **Immutability:**
 
-```javascript
+```js
 // Avoid mutations
 const original = [1, 2, 3];
 
@@ -1434,7 +1105,7 @@ const newObj2 = Object.assign({}, originalObj, { age: 31 });
 
 **Composition:**
 
-```javascript
+```js
 // Function composition
 const compose =
   (...fns) =>
@@ -1460,7 +1131,7 @@ pipeExample(3); // square(double(addOne(3))) = 64
 
 **Currying:**
 
-```javascript
+```js
 // Manual currying
 function curry(fn) {
   return function curried(...args) {
@@ -1503,7 +1174,7 @@ const doubledNumbers = mapDouble(numbers); // [2, 4, 6, 8, 10, 12]
 
 **Basic Memoization:**
 
-```javascript
+```js
 function memoize(fn) {
   const cache = new Map();
 
@@ -1533,45 +1204,13 @@ memoizedFib(40); // Computed once
 memoizedFib(40); // Retrieved from cache
 ```
 
-**Advanced Memoization with TTL:**
-
-```javascript
-function memoizeWithTTL(fn, ttl = 60000) {
-  const cache = new Map();
-
-  return function (...args) {
-    const key = JSON.stringify(args);
-    const now = Date.now();
-
-    if (cache.has(key)) {
-      const { value, timestamp } = cache.get(key);
-      if (now - timestamp < ttl) {
-        return value;
-      } else {
-        cache.delete(key);
-      }
-    }
-
-    const result = fn.apply(this, args);
-    cache.set(key, { value: result, timestamp: now });
-    return result;
-  };
-}
-
-// API call caching
-const fetchUserData = memoizeWithTTL(async (userId) => {
-  const response = await fetch(`/api/users/${userId}`);
-  return response.json();
-}, 300000); // 5 minutes TTL
-```
-
 ### Tail Recursion
 
 **Optimizing recursive functions to prevent stack overflow.**
 
 **Regular Recursion (Stack Overflow Risk):**
 
-```javascript
+```js
 function factorial(n) {
   if (n <= 1) return 1;
   return n * factorial(n - 1); // Not tail recursive
@@ -1582,7 +1221,7 @@ function factorial(n) {
 
 **Tail Recursive Version:**
 
-```javascript
+```js
 function factorialTail(n, accumulator = 1) {
   if (n <= 1) return accumulator;
   return factorialTail(n - 1, n * accumulator); // Tail call
@@ -1593,7 +1232,7 @@ function factorialTail(n, accumulator = 1) {
 
 **Trampoline Technique (Manual Optimization):**
 
-```javascript
+```js
 function trampoline(fn) {
   return function (...args) {
     let result = fn(...args);
@@ -1613,223 +1252,13 @@ const factorial = trampoline(factorialTrampoline);
 factorial(10000); // Won't cause stack overflow
 ```
 
-### JavaScript Data Structures
-
-**Implementing common data structures in JavaScript.**
-
-**Stack:**
-
-```javascript
-class Stack {
-  constructor() {
-    this.items = [];
-  }
-
-  push(item) {
-    this.items.push(item);
-  }
-
-  pop() {
-    return this.items.pop();
-  }
-
-  peek() {
-    return this.items[this.items.length - 1];
-  }
-
-  isEmpty() {
-    return this.items.length === 0;
-  }
-
-  size() {
-    return this.items.length;
-  }
-}
-```
-
-**Queue:**
-
-```javascript
-class Queue {
-  constructor() {
-    this.items = [];
-  }
-
-  enqueue(item) {
-    this.items.push(item);
-  }
-
-  dequeue() {
-    return this.items.shift();
-  }
-
-  front() {
-    return this.items[0];
-  }
-
-  isEmpty() {
-    return this.items.length === 0;
-  }
-
-  size() {
-    return this.items.length;
-  }
-}
-```
-
-**Linked List:**
-
-```javascript
-class ListNode {
-  constructor(data) {
-    this.data = data;
-    this.next = null;
-  }
-}
-
-class LinkedList {
-  constructor() {
-    this.head = null;
-    this.size = 0;
-  }
-
-  append(data) {
-    const newNode = new ListNode(data);
-
-    if (!this.head) {
-      this.head = newNode;
-    } else {
-      let current = this.head;
-      while (current.next) {
-        current = current.next;
-      }
-      current.next = newNode;
-    }
-    this.size++;
-  }
-
-  prepend(data) {
-    const newNode = new ListNode(data);
-    newNode.next = this.head;
-    this.head = newNode;
-    this.size++;
-  }
-
-  remove(data) {
-    if (!this.head) return false;
-
-    if (this.head.data === data) {
-      this.head = this.head.next;
-      this.size--;
-      return true;
-    }
-
-    let current = this.head;
-    while (current.next && current.next.data !== data) {
-      current = current.next;
-    }
-
-    if (current.next) {
-      current.next = current.next.next;
-      this.size--;
-      return true;
-    }
-
-    return false;
-  }
-
-  find(data) {
-    let current = this.head;
-    while (current) {
-      if (current.data === data) return current;
-      current = current.next;
-    }
-    return null;
-  }
-}
-```
-
-**Binary Tree:**
-
-```javascript
-class TreeNode {
-  constructor(data) {
-    this.data = data;
-    this.left = null;
-    this.right = null;
-  }
-}
-
-class BinarySearchTree {
-  constructor() {
-    this.root = null;
-  }
-
-  insert(data) {
-    const newNode = new TreeNode(data);
-
-    if (!this.root) {
-      this.root = newNode;
-      return;
-    }
-
-    this.insertNode(this.root, newNode);
-  }
-
-  insertNode(node, newNode) {
-    if (newNode.data < node.data) {
-      if (!node.left) {
-        node.left = newNode;
-      } else {
-        this.insertNode(node.left, newNode);
-      }
-    } else {
-      if (!node.right) {
-        node.right = newNode;
-      } else {
-        this.insertNode(node.right, newNode);
-      }
-    }
-  }
-
-  search(data) {
-    return this.searchNode(this.root, data);
-  }
-
-  searchNode(node, data) {
-    if (!node) return false;
-
-    if (data === node.data) return true;
-
-    if (data < node.data) {
-      return this.searchNode(node.left, data);
-    } else {
-      return this.searchNode(node.right, data);
-    }
-  }
-
-  // Traversal methods
-  inOrder(callback) {
-    this.inOrderTraversal(this.root, callback);
-  }
-
-  inOrderTraversal(node, callback) {
-    if (node) {
-      this.inOrderTraversal(node.left, callback);
-      callback(node.data);
-      this.inOrderTraversal(node.right, callback);
-    }
-  }
-}
-```
-
 ### Floating Point Precision
 
 **Understanding and handling JavaScript number precision issues.**
 
 **The Problem:**
 
-```javascript
+```js
 // Floating point precision issues
 0.1 + 0.2; // 0.30000000000000004
 0.1 + 0.2 === 0.3; // false
@@ -1843,7 +1272,7 @@ class BinarySearchTree {
 
 **1. Number.EPSILON for Comparison:**
 
-```javascript
+```js
 function isEqual(a, b, epsilon = Number.EPSILON) {
   return Math.abs(a - b) < epsilon;
 }
@@ -1853,7 +1282,7 @@ isEqual(0.1 + 0.2, 0.3); // true
 
 **2. Fixed Decimal Places:**
 
-```javascript
+```js
 function addDecimals(a, b, decimals = 2) {
   return parseFloat((a + b).toFixed(decimals));
 }
@@ -1863,7 +1292,7 @@ addDecimals(0.1, 0.2); // 0.3
 
 **3. Integer Arithmetic:**
 
-```javascript
+```js
 function preciseAdd(a, b) {
   const factor = 100; // For 2 decimal places
   return (Math.round(a * factor) + Math.round(b * factor)) / factor;
@@ -1874,7 +1303,7 @@ preciseAdd(0.1, 0.2); // 0.3
 
 **4. Decimal.js Library:**
 
-```javascript
+```js
 // Using external library for precise decimal arithmetic
 const Decimal = require("decimal.js");
 
@@ -1885,7 +1314,7 @@ const result = a.plus(b); // 0.3
 
 **Safe Integer Range:**
 
-```javascript
+```js
 // JavaScript can safely represent integers up to:
 Number.MAX_SAFE_INTEGER; // 9007199254740991
 Number.MIN_SAFE_INTEGER; // -9007199254740991
@@ -1905,7 +1334,7 @@ const bigInt2 = BigInt(9007199254740992);
 
 **Cross-Site Scripting (XSS):**
 
-```javascript
+```js
 // Dangerous - never do this
 function dangerousHTML(userInput) {
   document.innerHTML = userInput; // XSS vulnerability
@@ -1929,7 +1358,7 @@ function safeHTML(userInput) {
 
 **Input Validation:**
 
-```javascript
+```js
 // Validate and sanitize user input
 function validateEmail(email) {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -1951,7 +1380,7 @@ function sanitizeString(input) {
 
 **Authentication & Authorization:**
 
-```javascript
+```js
 // JWT token handling
 function storeToken(token) {
   // Store in httpOnly cookie (server-side) or sessionStorage
@@ -1992,7 +1421,7 @@ async function secureApiCall(url, options = {}) {
 
 **OAuth 2.0 Flow:**
 
-```javascript
+```js
 class OAuthClient {
   constructor(clientId, redirectUri, authUrl) {
     this.clientId = clientId;
@@ -2089,7 +1518,7 @@ if (window.location.pathname === "/callback") {
 
 **Basic File Upload:**
 
-```javascript
+```js
 // HTML: <input type="file" id="fileInput" multiple>
 
 const fileInput = document.getElementById("fileInput");
@@ -2122,7 +1551,7 @@ async function uploadFile(file) {
 
 **Upload with Progress:**
 
-```javascript
+```js
 function uploadWithProgress(file, onProgress) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -2165,7 +1594,7 @@ uploadWithProgress(file, (progress) => {
 
 **Chunked Upload (Large Files):**
 
-```javascript
+```js
 class ChunkedUploader {
   constructor(file, chunkSize = 1024 * 1024) {
     // 1MB chunks
@@ -2248,7 +1677,7 @@ uploader.upload((progress) => {
 
 **Pull-to-Refresh:**
 
-```javascript
+```js
 class PullToRefresh {
   constructor(container, onRefresh) {
     this.container = container;
@@ -2340,7 +1769,7 @@ const pullToRefresh = new PullToRefresh(
 
 **Infinite Scroll:**
 
-```javascript
+```js
 class InfiniteScroll {
   constructor(container, loadMore, options = {}) {
     this.container = container;
@@ -2429,7 +1858,7 @@ const infiniteScroll = new InfiniteScroll(
 
 **Detecting when page becomes visible or hidden.**
 
-```javascript
+```js
 // Page Visibility API
 function handleVisibilityChange() {
   if (document.hidden) {
@@ -2509,7 +1938,7 @@ setTimeout(() => {
 
 **Memory Cache:**
 
-```javascript
+```js
 class MemoryCache {
   constructor(maxSize = 100) {
     this.cache = new Map();
@@ -2551,7 +1980,7 @@ class MemoryCache {
 
 **LocalStorage Cache with Expiration:**
 
-```javascript
+```js
 class LocalStorageCache {
   constructor(prefix = "cache_") {
     this.prefix = prefix;
@@ -2643,7 +2072,7 @@ async function fetchUserData(userId) {
 
 **Core Concepts:**
 
-```javascript
+```js
 // Component-based architecture
 function Welcome(props) {
   return <h1>Hello, {props.name}!</h1>;
@@ -2686,7 +2115,7 @@ function Counter() {
 
 **JSX Transformation:**
 
-```javascript
+```js
 // JSX
 const element = (
   <div className="container">
@@ -2724,7 +2153,7 @@ const element = {
 
 **JSX Rules:**
 
-```javascript
+```js
 // Must return single parent element
 function Component() {
   return (
@@ -2773,7 +2202,7 @@ function Button() {
 
 **Real DOM Problems:**
 
-```javascript
+```js
 // Expensive DOM operations
 document.getElementById("list").innerHTML = ""; // Reflow/repaint
 for (let i = 0; i < 1000; i++) {
@@ -2785,7 +2214,7 @@ for (let i = 0; i < 1000; i++) {
 
 **Virtual DOM Solution:**
 
-```javascript
+```js
 // Virtual DOM representation
 const virtualDOM = {
   type: "ul",
@@ -2815,7 +2244,7 @@ const virtualDOM = {
 
 **Reconciliation Algorithm:**
 
-```javascript
+```js
 // React's diffing heuristics:
 
 // 1. Different element types = complete rebuild
@@ -2840,7 +2269,7 @@ const virtualDOM = {
 
 **Class Components:**
 
-```javascript
+```js
 class ClassComponent extends React.Component {
   constructor(props) {
     super(props);
@@ -2908,7 +2337,7 @@ class ClassComponent extends React.Component {
 
 **Function Components with Hooks:**
 
-```javascript
+```js
 function FunctionComponent({ initialName = "" }) {
   const [count, setCount] = useState(0);
   const [name, setName] = useState(initialName);
@@ -2979,7 +2408,7 @@ function FunctionComponent({ initialName = "" }) {
 
 **useState:**
 
-```javascript
+```js
 function Counter() {
   const [count, setCount] = useState(0);
 
@@ -3023,7 +2452,7 @@ function Counter() {
 
 **useEffect:**
 
-```javascript
+```js
 function DataComponent({ userId }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -3079,7 +2508,7 @@ function DataComponent({ userId }) {
 
 **Custom Hooks:**
 
-```javascript
+```js
 // Custom hook for API calls
 function useApi(url) {
   const [data, setData] = useState(null);
@@ -3178,7 +2607,7 @@ function App() {
 
 **Class Component Lifecycle:**
 
-```javascript
+```js
 class LifecycleExample extends React.Component {
   constructor(props) {
     super(props);
@@ -3241,7 +2670,7 @@ class LifecycleExample extends React.Component {
 
 **Hooks Equivalent:**
 
-```javascript
+```js
 function LifecycleHooks() {
   const [count, setCount] = useState(0);
   const [hasError, setHasError] = useState(false);
@@ -3350,7 +2779,7 @@ function useCounter(initialValue = 0) {
 
 **React.memo:**
 
-```javascript
+```js
 // Prevents re-renders when props haven't changed
 const ExpensiveComponent = React.memo(function ExpensiveComponent({
   data,
@@ -3390,7 +2819,7 @@ const SmartComponent = React.memo(
 
 **useMemo:**
 
-```javascript
+```js
 function ExpensiveCalculation({ items, filter }) {
   // Expensive calculation only runs when dependencies change
   const filteredItems = useMemo(() => {
@@ -3425,7 +2854,7 @@ function ExpensiveCalculation({ items, filter }) {
 
 **useCallback:**
 
-```javascript
+```js
 function ParentComponent({ items }) {
   const [filter, setFilter] = useState("");
   const [sortOrder, setSortOrder] = useState("asc");
@@ -3502,7 +2931,7 @@ const ItemComponent = React.memo(function ItemComponent({
 
 **useRef:**
 
-```javascript
+```js
 function RefExamples() {
   const inputRef = useRef(null);
   const countRef = useRef(0);
@@ -3562,7 +2991,7 @@ function RefExamples() {
 
 **Performance Best Practices:**
 
-```javascript
+```js
 // 1. Avoid creating objects/functions in render
 function BadComponent({ items }) {
   return (
@@ -3629,7 +3058,7 @@ function BetterListComponent({ items }) {
 
 **Props (Properties):**
 
-```javascript
+```js
 // Props are read-only data passed from parent to child
 function ChildComponent({ name, age, onUpdate, children }) {
   // Props cannot be modified directly
@@ -3688,7 +3117,7 @@ function ParentComponent() {
 
 **Parent to Child (Props):**
 
-```javascript
+```js
 function Parent() {
   const [message, setMessage] = useState("Hello from parent");
 
@@ -3709,7 +3138,7 @@ function Child({ message, onMessageChange }) {
 
 **Child to Parent (Callback Props):**
 
-```javascript
+```js
 function Parent() {
   const [data, setData] = useState([]);
 
@@ -3745,7 +3174,7 @@ function Child({ onDataSubmit }) {
 
 **Sibling Communication (Lift State Up):**
 
-```javascript
+```js
 function Parent() {
   const [selectedItem, setSelectedItem] = useState(null);
 
@@ -3778,7 +3207,7 @@ function ItemDetails({ item }) {
 
 **Context API (Deep Component Tree):**
 
-```javascript
+```js
 const ThemeContext = createContext();
 const UserContext = createContext();
 
@@ -3818,7 +3247,7 @@ function Header() {
 
 **Controlled Components:**
 
-```javascript
+```js
 function ControlledForm() {
   const [formData, setFormData] = useState({
     name: "",
@@ -3869,7 +3298,7 @@ function ControlledForm() {
 
 **Uncontrolled Components:**
 
-```javascript
+```js
 function UncontrolledForm() {
   const nameRef = useRef();
   const emailRef = useRef();
@@ -3914,7 +3343,7 @@ function UncontrolledForm() {
 
 **Why Keys Matter:**
 
-```javascript
+```js
 // Without proper keys - React can't efficiently update
 function BadList({ items }) {
   return (
@@ -3950,7 +3379,7 @@ function GoodList({ items }) {
 
 **Key Rules:**
 
-```javascript
+```js
 // ✅ Good key examples
 <div key={user.id}>           // Unique ID
 <div key={`${user.id}-${user.email}`}> // Composite key
@@ -3964,7 +3393,7 @@ function GoodList({ items }) {
 
 **Dynamic Lists:**
 
-```javascript
+```js
 function TodoList() {
   const [todos, setTodos] = useState([
     { id: 1, text: "Learn React", completed: false },
@@ -4008,7 +3437,7 @@ function TodoList() {
 
 **useRef Hook:**
 
-```javascript
+```js
 function RefExamples() {
   const inputRef = useRef(null);
   const videoRef = useRef(null);
@@ -4051,7 +3480,7 @@ function RefExamples() {
 
 **Forwarding Refs:**
 
-```javascript
+```js
 // Forward ref to allow parent access to child's DOM
 const FancyInput = forwardRef((props, ref) => (
   <div className="fancy-input">
@@ -4077,7 +3506,7 @@ function Parent() {
 
 **Function Components:**
 
-```javascript
+```js
 function EventBindingFunction() {
   const [count, setCount] = useState(0);
 
@@ -4111,7 +3540,7 @@ function EventBindingFunction() {
 
 **SyntheticEvent Properties:**
 
-```javascript
+```js
 function EventExample() {
   const handleEvent = (event) => {
     // SyntheticEvent properties
@@ -4157,7 +3586,7 @@ function EventExample() {
 
 **Basic HOC Pattern:**
 
-```javascript
+```js
 // HOC that adds loading functionality
 function withLoading(WrappedComponent) {
   return function WithLoadingComponent(props) {
@@ -4183,7 +3612,7 @@ const UserListWithLoading = withLoading(UserList);
 
 **Authentication HOC:**
 
-```javascript
+```js
 function withAuth(WrappedComponent) {
   return function WithAuthComponent(props) {
     const { user, isAuthenticated } = useAuth();
@@ -4203,7 +3632,7 @@ function withAuth(WrappedComponent) {
 
 **Basic Render Props:**
 
-```javascript
+```js
 class MouseTracker extends React.Component {
   state = { x: 0, y: 0 };
 
@@ -4239,7 +3668,7 @@ function App() {
 
 **Function as Children:**
 
-```javascript
+```js
 class DataFetcher extends React.Component {
   state = { data: null, loading: true, error: null };
 
@@ -4271,7 +3700,7 @@ function UserProfile({ userId }) {
 
 **Modern Hook Alternative:**
 
-```javascript
+```js
 // Custom hook replaces render props pattern
 function useMousePosition() {
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -4305,7 +3734,7 @@ function App() {
 
 **Key Concepts:**
 
-```javascript
+```js
 // Fiber enables:
 // 1. Incremental rendering - work can be split into chunks
 // 2. Ability to pause, abort, or reuse work
@@ -4337,7 +3766,7 @@ function heavyComponent() {
 
 **Concurrent Features:**
 
-```javascript
+```js
 // React 18 concurrent features enabled by Fiber
 import { startTransition, useDeferredValue } from "react";
 
@@ -4372,7 +3801,7 @@ function SearchResults() {
 
 **Reconciliation Rules:**
 
-```javascript
+```js
 // 1. Different element types = complete rebuild
 // Old tree:
 <div>
@@ -4399,7 +3828,7 @@ function SearchResults() {
 
 **Key Optimization:**
 
-```javascript
+```js
 // Without keys - inefficient
 function TodoList({ todos }) {
   return (
@@ -4439,7 +3868,7 @@ function TodoList({ todos }) {
 
 **Optimization Strategies:**
 
-```javascript
+```js
 // 1. Stable keys
 const items = data.map((item) => (
   <Item key={item.id} data={item} /> // ✅ Stable
@@ -4474,7 +3903,7 @@ function App() {
 
 **Class-based Error Boundary:**
 
-```javascript
+```js
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -4531,7 +3960,7 @@ function App() {
 
 **Hook-based Error Boundary (using library):**
 
-```javascript
+```js
 // Using react-error-boundary library
 import { ErrorBoundary } from "react-error-boundary";
 
@@ -4565,7 +3994,7 @@ function App() {
 
 **What Error Boundaries Catch:**
 
-```javascript
+```js
 // ✅ Error boundaries catch:
 // - Errors in render methods
 // - Errors in lifecycle methods
@@ -5634,7 +5063,7 @@ img {
 
 **JavaScript DPR Detection:**
 
-```javascript
+```js
 // Detect device pixel ratio
 const dpr = window.devicePixelRatio || 1;
 console.log("Device Pixel Ratio:", dpr);
@@ -6168,7 +5597,7 @@ div > div > div > p {
 
 **var Issues:**
 
-```javascript
+```js
 // Function scoping (not block scoping)
 function varExample() {
   if (true) {
@@ -6189,7 +5618,7 @@ for (var i = 0; i < 3; i++) {
 
 **let and const Solutions:**
 
-```javascript
+```js
 // Block scoping
 function letExample() {
   if (true) {
@@ -6222,7 +5651,7 @@ arr.push(4); // ✅ Array methods work
 
 **Best Practices:**
 
-```javascript
+```js
 // Use const by default
 const API_URL = "https://api.example.com";
 const users = [];
@@ -6241,7 +5670,7 @@ let isLoading = false;
 
 **Syntax Variations:**
 
-```javascript
+```js
 // Traditional function
 function add(a, b) {
   return a + b;
@@ -6275,7 +5704,7 @@ const processData = (data) => {
 
 **Lexical `this` Binding:**
 
-```javascript
+```js
 // Traditional function - dynamic this
 function Timer() {
   this.seconds = 0;
@@ -6324,7 +5753,7 @@ class EventHandler {
 
 **When NOT to Use Arrow Functions:**
 
-```javascript
+```js
 // Object methods (this doesn't work as expected)
 const obj = {
   name: "John",
@@ -6353,7 +5782,7 @@ const button = {
 
 **Basic Syntax:**
 
-```javascript
+```js
 // String interpolation
 const name = "John";
 const age = 30;
@@ -6373,7 +5802,7 @@ const total = `Total: $${(price * (1 + tax)).toFixed(2)}`;
 
 **Multiline Strings:**
 
-```javascript
+```js
 // Old way (awkward)
 const html = "<div>\n" + "  <h1>Title</h1>\n" + "  <p>Content</p>\n" + "</div>";
 
@@ -6398,7 +5827,7 @@ const query = `
 
 **Tagged Template Literals:**
 
-```javascript
+```js
 // Custom template processing
 function highlight(strings, ...values) {
   return strings.reduce((result, string, i) => {
@@ -6435,7 +5864,7 @@ const buttonStyles = css`
 
 **Array Destructuring:**
 
-```javascript
+```js
 // Basic array destructuring
 const numbers = [1, 2, 3, 4, 5];
 const [first, second, third] = numbers;
@@ -6469,7 +5898,7 @@ const [x, y] = getCoordinates();
 
 **Object Destructuring:**
 
-```javascript
+```js
 // Basic object destructuring
 const user = {
   name: "John",
@@ -6505,7 +5934,7 @@ console.log(otherProps); // { age: 30, email: '...', address: {...} }
 
 **Function Parameters:**
 
-```javascript
+```js
 // Object parameter destructuring
 function createUser({ name, age, email = "unknown" }) {
   return {
@@ -6625,7 +6054,7 @@ import * as Everything from "./module";
 
 **Basic Class Syntax:**
 
-```javascript
+```js
 class Person {
   constructor(name, age) {
     this.name = name;
@@ -6670,7 +6099,7 @@ const guest = Person.createGuest();
 
 **Inheritance:**
 
-```javascript
+```js
 class Employee extends Person {
   constructor(name, age, jobTitle, salary) {
     super(name, age); // Call parent constructor
@@ -6699,7 +6128,7 @@ console.log(employee.greet()); // "Hello, I'm Jane, I'm a Developer"
 
 **Basic Generator:**
 
-```javascript
+```js
 function* simpleGenerator() {
   yield 1;
   yield 2;
@@ -6720,7 +6149,7 @@ for (const value of simpleGenerator()) {
 
 **Practical Examples:**
 
-```javascript
+```js
 // ID generator
 function* idGenerator() {
   let id = 1;
@@ -6767,7 +6196,7 @@ console.log(processor.next("OK")); // Logs: "Received: OK"
 
 **Iterator Protocol:**
 
-```javascript
+```js
 // Custom iterator
 function createIterator(array) {
   let index = 0;
@@ -6792,7 +6221,7 @@ console.log(iterator.next()); // { done: true }
 
 **Iterable Protocol:**
 
-```javascript
+```js
 // Custom iterable object
 const range = {
   start: 1,
@@ -6829,7 +6258,7 @@ console.log([...range]); // [1, 2, 3, 4, 5]
 
 **Set:**
 
-```javascript
+```js
 // Creating sets
 const set = new Set();
 const setWithValues = new Set([1, 2, 3, 3, 4]); // [1, 2, 3, 4]
@@ -6871,7 +6300,7 @@ const difference = new Set([...setA].filter((x) => !setB.has(x))); // [1, 2]
 
 **Map:**
 
-```javascript
+```js
 // Creating maps
 const map = new Map();
 const mapWithValues = new Map([
@@ -7010,7 +6439,7 @@ Connection: keep-alive
 
 **HTTP/2 Benefits:**
 
-```javascript
+```js
 // HTTP/1.1 - Multiple connections needed
 fetch("/api/users"); // Connection 1
 fetch("/api/posts"); // Connection 2
@@ -7079,7 +6508,7 @@ fetch("/api/comments"); // Stream 3
 
 **Practical Usage:**
 
-```javascript
+```js
 async function handleApiResponse(response) {
   switch (response.status) {
     case 200:
@@ -7164,7 +6593,7 @@ Referrer-Policy: strict-origin-when-cross-origin
 
 **JavaScript Header Manipulation:**
 
-```javascript
+```js
 // Setting request headers
 const response = await fetch("/api/data", {
   method: "POST",
@@ -7237,7 +6666,7 @@ Content-Length: 123
 
 **Other HTTP Methods:**
 
-```javascript
+```js
 // PUT - Update/replace entire resource
 await fetch("/api/users/123", {
   method: "PUT",
@@ -7330,7 +6759,7 @@ console.log(response.headers.get("Allow")); // GET, POST, PUT, DELETE
 
 **WebSocket Implementation:**
 
-```javascript
+```js
 // Client-side WebSocket
 class WebSocketClient {
   constructor(url) {
@@ -7447,7 +6876,7 @@ Use Cases:
 
 **Comparison:**
 
-```javascript
+```js
 // TCP-like behavior (HTTP)
 async function reliableRequest(url, data) {
   let attempts = 0;
@@ -7507,7 +6936,7 @@ Network Access Layer (Ethernet, WiFi)
 
 **IP Addressing:**
 
-```javascript
+```js
 // IPv4 addresses
 const ipv4Examples = [
   "192.168.1.1", // Private network
@@ -7575,7 +7004,7 @@ const commonPorts = {
 
 **Web Request OSI Flow:**
 
-```javascript
+```js
 // Application Layer (Layer 7)
 fetch("https://api.example.com/users");
 
@@ -7623,7 +7052,7 @@ fetch("https://api.example.com/users");
 
 **DNS Record Types:**
 
-```javascript
+```js
 const dnsRecords = {
   A: "192.168.1.1", // IPv4 address
   AAAA: "2001:db8::1", // IPv6 address
@@ -7692,7 +7121,7 @@ async function dnsLookup(domain) {
 
 **CDN Configuration:**
 
-```javascript
+```js
 // CDN cache headers
 const cdnHeaders = {
   "Cache-Control": "public, max-age=31536000", // 1 year
@@ -7763,7 +7192,7 @@ Client                    Server
 
 **Connection States:**
 
-```javascript
+```js
 const tcpStates = {
   CLOSED: "No connection",
   LISTEN: "Server waiting for connections",
@@ -7785,7 +7214,7 @@ const tcpStates = {
 
 **Step-by-Step Process:**
 
-```javascript
+```js
 // 1. URL Parsing
 const url = new URL("https://example.com/path?query=value#fragment");
 console.log({
@@ -7843,7 +7272,7 @@ Set-Cookie: sessionId=abc123
 
 **Performance Timeline:**
 
-```javascript
+```js
 // Measuring page load performance
 window.addEventListener("load", () => {
   const perfData = performance.getEntriesByType("navigation")[0];
@@ -8974,7 +8403,7 @@ function UserProfile({ userId }: { userId: number }) {
 
 **Core Concepts:**
 
-```javascript
+```js
 // webpack.config.js
 const path = require("path");
 
@@ -9017,7 +8446,7 @@ module.exports = {
 
 **Entry Points:**
 
-```javascript
+```js
 // Single entry
 module.exports = {
   entry: "./src/index.js"
@@ -9047,7 +8476,7 @@ module.exports = {
 
 **Output Configuration:**
 
-```javascript
+```js
 module.exports = {
   output: {
     // Output directory
@@ -9081,7 +8510,7 @@ module.exports = {
 
 **Module Resolution:**
 
-```javascript
+```js
 // webpack resolves modules in this order:
 // 1. Exact file match
 import "./file.js";
@@ -9122,7 +8551,7 @@ module.exports = {
 
 **Dependency Graph:**
 
-```javascript
+```js
 // Entry file: src/index.js
 import { header } from "./components/header.js";
 import { footer } from "./components/footer.js";
@@ -9142,7 +8571,7 @@ import "./styles/main.css";
 
 **Code Splitting:**
 
-```javascript
+```js
 // Dynamic imports for code splitting
 async function loadModule() {
   const { default: heavyModule } = await import("./heavy-module.js");
@@ -9182,7 +8611,7 @@ module.exports = {
 
 **Common Loaders:**
 
-```javascript
+```js
 module.exports = {
   module: {
     rules: [
@@ -9251,7 +8680,7 @@ module.exports = {
 
 **Custom Loader:**
 
-```javascript
+```js
 // simple-loader.js
 module.exports = function (source) {
   // Transform the source code
@@ -9280,7 +8709,7 @@ module.exports = {
 
 **Common Plugins:**
 
-```javascript
+```js
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
@@ -9331,7 +8760,7 @@ module.exports = {
 
 **Custom Plugin:**
 
-```javascript
+```js
 // custom-plugin.js
 class CustomPlugin {
   apply(compiler) {
@@ -9365,7 +8794,7 @@ module.exports = CustomPlugin;
 
 **Loaders:**
 
-```javascript
+```js
 // Loaders transform individual files
 // They work at the module level
 // Process files as they're imported
@@ -9391,7 +8820,7 @@ module.exports = {
 
 **Plugins:**
 
-```javascript
+```js
 // Plugins work at the compilation level
 // They can access the entire compilation
 // Perform tasks that affect the whole bundle
@@ -9433,7 +8862,7 @@ Plugins:
 
 **HMR Configuration:**
 
-```javascript
+```js
 // webpack.config.js
 module.exports = {
   mode: "development",
@@ -9449,7 +8878,7 @@ module.exports = {
 
 **HMR API Usage:**
 
-```javascript
+```js
 // main.js
 import { render } from "./app.js";
 
@@ -9476,7 +8905,7 @@ if (module.hot) {
 
 **React HMR:**
 
-```javascript
+```js
 // Using React Fast Refresh
 const ReactRefreshWebpackPlugin = require("@pmmmwh/react-refresh-webpack-plugin");
 
@@ -9590,7 +9019,7 @@ optimization: {
 
 **Production Configuration:**
 
-```javascript
+```js
 const path = require("path");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
@@ -9644,7 +9073,7 @@ module.exports = {
 
 **Tree Shaking:**
 
-```javascript
+```js
 // Enable tree shaking
 module.exports = {
     mode: 'production', // Enables tree shaking automatically
@@ -9683,7 +9112,7 @@ import { debounce } from 'lodash-es'; // ✅ Tree shakeable
 
 **Code Splitting Strategies:**
 
-```javascript
+```js
 // 1. Entry point splitting
 module.exports = {
   entry: {
@@ -9733,7 +9162,7 @@ module.exports = {
 
 **Build Performance:**
 
-```javascript
+```js
 module.exports = {
   // Cache compilation results
   cache: {
@@ -9777,7 +9206,7 @@ module.exports = {
 
 **Bundle Analysis:**
 
-```javascript
+```js
 const BundleAnalyzerPlugin =
   require("webpack-bundle-analyzer").BundleAnalyzerPlugin;
 
@@ -9797,7 +9226,7 @@ module.exports = {
 
 **Asset Optimization:**
 
-```javascript
+```js
 const ImageMinimizerPlugin = require("image-minimizer-webpack-plugin");
 
 module.exports = {
@@ -9839,7 +9268,7 @@ module.exports = {
 
 **DevServer Proxy:**
 
-```javascript
+```js
 module.exports = {
   devServer: {
     port: 3000,
@@ -9890,7 +9319,7 @@ module.exports = {
 
 **Environment-specific Configuration:**
 
-```javascript
+```js
 // webpack.dev.js
 const { merge } = require("webpack-merge");
 const common = require("./webpack.common.js");
@@ -9923,7 +9352,7 @@ module.exports = merge(common, {
 
 **Vite:**
 
-```javascript
+```js
 // vite.config.js
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
@@ -9975,7 +9404,7 @@ export default defineConfig({
 
 **esbuild:**
 
-```javascript
+```js
 // build.js
 const esbuild = require("esbuild");
 
@@ -9999,7 +9428,7 @@ esbuild
 
 **Rollup:**
 
-```javascript
+```js
 // rollup.config.js
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
