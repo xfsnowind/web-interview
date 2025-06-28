@@ -5055,9 +5055,750 @@ console.log(response.headers.get('Allow')); // GET, POST, PUT, DELETE
 - Gaming applications
 - Live streaming
 
+**WebSocket Implementation:**
+```javascript
+// Client-side WebSocket
+class WebSocketClient {
+    constructor(url) {
+        this.url = url;
+        this.ws = null;
+        this.reconnectAttempts = 0;
+        this.maxReconnectAttempts = 5;
+    }
+
+    connect() {
+        this.ws = new WebSocket(this.url);
+
+        this.ws.onopen = (event) => {
+            console.log('WebSocket connected');
+            this.reconnectAttempts = 0;
+        };
+
+        this.ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                this.handleMessage(data);
+            } catch (error) {
+                console.error('Invalid JSON received:', event.data);
+            }
+        };
+
+        this.ws.onclose = (event) => {
+            console.log('WebSocket closed:', event.code, event.reason);
+            this.handleReconnect();
+        };
+
+        this.ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+    }
+
+    send(data) {
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify(data));
+        } else {
+            console.error('WebSocket not connected');
+        }
+    }
+
+    handleReconnect() {
+        if (this.reconnectAttempts < this.maxReconnectAttempts) {
+            this.reconnectAttempts++;
+            setTimeout(() => {
+                console.log(`Reconnecting... Attempt ${this.reconnectAttempts}`);
+                this.connect();
+            }, 1000 * this.reconnectAttempts);
+        }
+    }
+
+    handleMessage(data) {
+        // Override in subclass
+        console.log('Received:', data);
+    }
+
+    close() {
+        if (this.ws) {
+            this.ws.close();
+        }
+    }
+}
+
+// Usage
+const client = new WebSocketClient('wss://api.example.com/ws');
+client.connect();
+client.send({ type: 'subscribe', channel: 'chat' });
+```
+
+### TCP vs UDP
+
+**Understanding the transport layer protocols underlying HTTP.**
+
+**TCP (Transmission Control Protocol):**
+```
+Characteristics:
+- Connection-oriented (handshake required)
+- Reliable delivery (guaranteed order, no loss)
+- Error checking and correction
+- Flow control and congestion control
+- Higher overhead
+- Slower but more reliable
+
+Use Cases:
+- HTTP/HTTPS
+- Email (SMTP, POP3, IMAP)
+- File transfer (FTP)
+- SSH, Telnet
+- Database connections
+```
+
+**UDP (User Datagram Protocol):**
+```
+Characteristics:
+- Connectionless (no handshake)
+- Unreliable delivery (no guarantee of order or delivery)
+- No error correction
+- No flow control
+- Lower overhead
+- Faster but less reliable
+
+Use Cases:
+- DNS queries
+- Video streaming
+- Online gaming
+- VoIP
+- DHCP
+```
+
+**Comparison:**
+```javascript
+// TCP-like behavior (HTTP)
+async function reliableRequest(url, data) {
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    while (attempts < maxAttempts) {
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                body: JSON.stringify(data),
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (response.ok) {
+                return await response.json();
+            }
+            throw new Error(`HTTP ${response.status}`);
+        } catch (error) {
+            attempts++;
+            if (attempts >= maxAttempts) throw error;
+
+            // Exponential backoff
+            await new Promise(resolve =>
+                setTimeout(resolve, 1000 * Math.pow(2, attempts))
+            );
+        }
+    }
+}
+
+// UDP-like behavior (fire and forget)
+function unreliableRequest(url, data) {
+    fetch(url, {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: { 'Content-Type': 'application/json' }
+    }).catch(() => {
+        // Ignore errors - fire and forget
+    });
+}
+```
+
+### TCP/IP Protocol
+
+**The foundation of internet communication.**
+
+**TCP/IP Stack Layers:**
+```
+Application Layer (HTTP, HTTPS, FTP, SMTP)
+    ↓
+Transport Layer (TCP, UDP)
+    ↓
+Internet Layer (IP, ICMP)
+    ↓
+Network Access Layer (Ethernet, WiFi)
+```
+
+**IP Addressing:**
+```javascript
+// IPv4 addresses
+const ipv4Examples = [
+    '192.168.1.1',    // Private network
+    '10.0.0.1',       // Private network
+    '172.16.0.1',     // Private network
+    '8.8.8.8',        // Google DNS (public)
+    '127.0.0.1'       // Localhost
+];
+
+// IPv6 addresses
+const ipv6Examples = [
+    '2001:0db8:85a3:0000:0000:8a2e:0370:7334',
+    '::1',            // Localhost
+    '::'              // All zeros
+];
+
+// Port numbers
+const commonPorts = {
+    HTTP: 80,
+    HTTPS: 443,
+    FTP: 21,
+    SSH: 22,
+    SMTP: 25,
+    DNS: 53,
+    POP3: 110,
+    IMAP: 143
+};
+```
+
+### OSI Model
+
+**Seven-layer model for network communication.**
+
+**OSI Layers:**
+```
+7. Application Layer
+   - HTTP, HTTPS, FTP, SMTP, DNS
+   - User interface and network services
+
+6. Presentation Layer
+   - Encryption, compression, data formatting
+   - SSL/TLS encryption
+
+5. Session Layer
+   - Session management, authentication
+   - SQL sessions, RPC
+
+4. Transport Layer
+   - TCP, UDP
+   - End-to-end communication, error recovery
+
+3. Network Layer
+   - IP, ICMP, routing
+   - Logical addressing, path determination
+
+2. Data Link Layer
+   - Ethernet, WiFi, switches
+   - Physical addressing, error detection
+
+1. Physical Layer
+   - Cables, hubs, repeaters
+   - Electrical signals, bits
+```
+
+**Web Request OSI Flow:**
+```javascript
+// Application Layer (Layer 7)
+fetch('https://api.example.com/users')
+
+// Presentation Layer (Layer 6)
+// - HTTPS encryption applied
+// - JSON data formatting
+
+// Session Layer (Layer 5)
+// - TLS session established
+// - Authentication handled
+
+// Transport Layer (Layer 4)
+// - TCP connection established
+// - Data segmented into packets
+
+// Network Layer (Layer 3)
+// - IP routing to destination
+// - Packet forwarding
+
+// Data Link Layer (Layer 2)
+// - Ethernet frame creation
+// - MAC address resolution
+
+// Physical Layer (Layer 1)
+// - Electrical signals transmitted
+// - Physical medium (cable/wireless)
+```
+
+### DNS Resolution
+
+**Domain Name System translates domain names to IP addresses.**
+
+**DNS Resolution Process:**
+```
+1. Browser cache check
+2. OS cache check
+3. Router cache check
+4. ISP DNS server query
+5. Root DNS server query
+6. TLD DNS server query (.com, .org, etc.)
+7. Authoritative DNS server query
+8. IP address returned
+```
+
+**DNS Record Types:**
+```javascript
+const dnsRecords = {
+    A: '192.168.1.1',           // IPv4 address
+    AAAA: '2001:db8::1',        // IPv6 address
+    CNAME: 'example.com',       // Canonical name (alias)
+    MX: 'mail.example.com',     // Mail exchange
+    TXT: 'v=spf1 include:_spf.google.com ~all', // Text record
+    NS: 'ns1.example.com',      // Name server
+    SOA: 'ns1.example.com admin.example.com', // Start of authority
+    PTR: 'example.com'          // Reverse DNS lookup
+};
+
+// DNS lookup simulation
+async function dnsLookup(domain) {
+    try {
+        // Modern browsers don't expose direct DNS API
+        // This simulates the process
+        const response = await fetch(`https://dns.google/resolve?name=${domain}&type=A`);
+        const data = await response.json();
+
+        return data.Answer?.map(record => ({
+            name: record.name,
+            type: record.type,
+            data: record.data,
+            ttl: record.TTL
+        }));
+    } catch (error) {
+        console.error('DNS lookup failed:', error);
+        return null;
+    }
+}
+```
+
+### CDN (Content Delivery Network)
+
+**Distributed network of servers for faster content delivery.**
+
+**CDN Benefits:**
+```
+- Reduced latency (geographically closer servers)
+- Improved availability (redundancy)
+- Reduced bandwidth costs
+- DDoS protection
+- Caching static assets
+- Global reach
+```
+
+**CDN Implementation:**
+```html
+<!-- CDN for libraries -->
+<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+
+<!-- CDN for fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+
+<!-- CDN for images -->
+<img src="https://images.unsplash.com/photo-1234567890" alt="Example">
+```
+
+**CDN Configuration:**
+```javascript
+// CDN cache headers
+const cdnHeaders = {
+    'Cache-Control': 'public, max-age=31536000', // 1 year
+    'ETag': '"abc123"',
+    'Last-Modified': 'Wed, 21 Oct 2023 07:28:00 GMT',
+    'Vary': 'Accept-Encoding',
+    'Content-Encoding': 'gzip'
+};
+
+// CDN fallback strategy
+function loadWithFallback(cdnUrl, fallbackUrl) {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = cdnUrl;
+
+        script.onload = () => resolve(script);
+        script.onerror = () => {
+            // Fallback to local version
+            script.src = fallbackUrl;
+            script.onload = () => resolve(script);
+            script.onerror = () => reject(new Error('Both CDN and fallback failed'));
+        };
+
+        document.head.appendChild(script);
+    });
+}
+
+// Usage
+loadWithFallback(
+    'https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js',
+    '/js/react.min.js'
+);
+```
+
+### TCP Handshakes and Termination
+
+**Understanding TCP connection establishment and teardown.**
+
+**TCP Three-Way Handshake:**
+```
+Client                    Server
+  |                         |
+  |-------- SYN ----------->|  (1. Client initiates)
+  |                         |
+  |<----- SYN-ACK ----------|  (2. Server acknowledges)
+  |                         |
+  |-------- ACK ----------->|  (3. Client confirms)
+  |                         |
+  |    Connection Established
+```
+
+**TCP Four-Way Termination:**
+```
+Client                    Server
+  |                         |
+  |-------- FIN ----------->|  (1. Client initiates close)
+  |                         |
+  |<------- ACK ------------|  (2. Server acknowledges)
+  |                         |
+  |<------- FIN ------------|  (3. Server initiates close)
+  |                         |
+  |-------- ACK ----------->|  (4. Client acknowledges)
+  |                         |
+  |    Connection Closed
+```
+
+**Connection States:**
+```javascript
+const tcpStates = {
+    CLOSED: 'No connection',
+    LISTEN: 'Server waiting for connections',
+    SYN_SENT: 'Client sent SYN, waiting for SYN-ACK',
+    SYN_RECEIVED: 'Server received SYN, sent SYN-ACK',
+    ESTABLISHED: 'Connection established',
+    FIN_WAIT_1: 'Client sent FIN, waiting for ACK',
+    FIN_WAIT_2: 'Client received ACK, waiting for FIN',
+    CLOSE_WAIT: 'Server received FIN, waiting to close',
+    CLOSING: 'Both sides closing simultaneously',
+    LAST_ACK: 'Server sent FIN, waiting for ACK',
+    TIME_WAIT: 'Client waiting for delayed packets'
+};
+```
+
+### URL to Page Load Process
+
+**Complete process from URL entry to page display.**
+
+**Step-by-Step Process:**
+```javascript
+// 1. URL Parsing
+const url = new URL('https://example.com/path?query=value#fragment');
+console.log({
+    protocol: url.protocol,  // 'https:'
+    hostname: url.hostname,  // 'example.com'
+    pathname: url.pathname,  // '/path'
+    search: url.search,      // '?query=value'
+    hash: url.hash          // '#fragment'
+});
+
+// 2. DNS Resolution
+// Browser checks cache, then queries DNS servers
+
+// 3. TCP Connection
+// Three-way handshake with server
+
+// 4. TLS Handshake (for HTTPS)
+// Certificate verification, key exchange
+
+// 5. HTTP Request
+const request = `
+GET /path?query=value HTTP/1.1
+Host: example.com
+User-Agent: Mozilla/5.0...
+Accept: text/html,application/xhtml+xml
+Accept-Language: en-US,en;q=0.9
+Accept-Encoding: gzip, deflate, br
+Connection: keep-alive
+`;
+
+// 6. Server Processing
+// Route handling, database queries, business logic
+
+// 7. HTTP Response
+const response = `
+HTTP/1.1 200 OK
+Content-Type: text/html; charset=utf-8
+Content-Length: 1234
+Cache-Control: public, max-age=3600
+Set-Cookie: sessionId=abc123
+
+<!DOCTYPE html>
+<html>...
+`;
+
+// 8. Browser Processing
+// HTML parsing, DOM construction, CSS parsing, JavaScript execution
+
+// 9. Resource Loading
+// Images, stylesheets, scripts, fonts
+
+// 10. Rendering
+// Layout calculation, painting, compositing
+```
+
+**Performance Timeline:**
+```javascript
+// Measuring page load performance
+window.addEventListener('load', () => {
+    const perfData = performance.getEntriesByType('navigation')[0];
+
+    console.log({
+        dnsLookup: perfData.domainLookupEnd - perfData.domainLookupStart,
+        tcpConnect: perfData.connectEnd - perfData.connectStart,
+        tlsHandshake: perfData.secureConnectionStart > 0 ?
+            perfData.connectEnd - perfData.secureConnectionStart : 0,
+        httpRequest: perfData.responseStart - perfData.requestStart,
+        httpResponse: perfData.responseEnd - perfData.responseStart,
+        domParsing: perfData.domContentLoadedEventStart - perfData.responseEnd,
+        resourceLoading: perfData.loadEventStart - perfData.domContentLoadedEventEnd,
+        totalTime: perfData.loadEventEnd - perfData.navigationStart
+    });
+});
+```
+
 ---
 
 ## TypeScript
+
+### TypeScript vs JavaScript
+
+**TypeScript is a superset of JavaScript that adds static type checking.**
+
+**Key Differences:**
+```typescript
+// JavaScript - Dynamic typing
+let message = "Hello";
+message = 42;           // Valid at runtime
+message.toUpperCase();  // Runtime error
+
+// TypeScript - Static typing
+let message: string = "Hello";
+// message = 42;        // ❌ Compile-time error
+message.toUpperCase();  // ✅ Type-safe
+```
+
+**Benefits of TypeScript:**
+- **Early Error Detection:** Catch errors at compile time
+- **Better IDE Support:** IntelliSense, autocomplete, refactoring
+- **Self-Documenting Code:** Types serve as documentation
+- **Safer Refactoring:** Compiler ensures type consistency
+- **Enhanced Team Collaboration:** Clear contracts between modules
+
+**TypeScript Compilation:**
+```bash
+# Install TypeScript
+npm install -g typescript
+
+# Compile TypeScript to JavaScript
+tsc app.ts
+
+# Watch mode
+tsc app.ts --watch
+
+# Project compilation
+tsc --init  # Creates tsconfig.json
+tsc         # Compiles entire project
+```
+
+### Data Types
+
+**TypeScript provides both primitive and complex types.**
+
+**Primitive Types:**
+```typescript
+// Basic types
+let name: string = "John";
+let age: number = 30;
+let isActive: boolean = true;
+let value: null = null;
+let notDefined: undefined = undefined;
+
+// Symbol and BigInt
+let sym: symbol = Symbol("id");
+let bigNumber: bigint = 100n;
+
+// Any type (avoid when possible)
+let anything: any = "hello";
+anything = 42;
+anything = true;
+
+// Unknown type (safer than any)
+let userInput: unknown = getUserInput();
+if (typeof userInput === "string") {
+    console.log(userInput.toUpperCase()); // Type guard required
+}
+
+// Void type
+function logMessage(msg: string): void {
+    console.log(msg);
+    // No return value
+}
+
+// Never type
+function throwError(message: string): never {
+    throw new Error(message);
+}
+
+function infiniteLoop(): never {
+    while (true) {
+        // Never returns
+    }
+}
+```
+
+**Array and Tuple Types:**
+```typescript
+// Array types
+let numbers: number[] = [1, 2, 3];
+let strings: Array<string> = ["a", "b", "c"];
+
+// Mixed array
+let mixed: (string | number)[] = ["hello", 42, "world"];
+
+// Tuple types
+let person: [string, number] = ["John", 30];
+let rgb: [number, number, number] = [255, 0, 0];
+
+// Optional tuple elements
+let point: [number, number, number?] = [10, 20]; // z is optional
+
+// Rest elements in tuples
+let scores: [string, ...number[]] = ["John", 95, 87, 92];
+
+// Named tuple elements
+let employee: [name: string, age: number, salary: number] = ["John", 30, 50000];
+```
+
+**Object Types:**
+```typescript
+// Object type annotation
+let user: {
+    name: string;
+    age: number;
+    email?: string; // Optional property
+} = {
+    name: "John",
+    age: 30
+};
+
+// Index signatures
+let scores: { [subject: string]: number } = {
+    math: 95,
+    science: 87,
+    english: 92
+};
+
+// Nested objects
+let company: {
+    name: string;
+    address: {
+        street: string;
+        city: string;
+        country: string;
+    };
+    employees: {
+        name: string;
+        position: string;
+    }[];
+} = {
+    name: "Tech Corp",
+    address: {
+        street: "123 Main St",
+        city: "New York",
+        country: "USA"
+    },
+    employees: [
+        { name: "John", position: "Developer" },
+        { name: "Jane", position: "Designer" }
+    ]
+};
+```
+
+### Data Types
+
+**TypeScript provides both primitive and complex types.**
+
+**Union and Intersection Types:**
+```typescript
+// Union types
+type StringOrNumber = string | number;
+let value: StringOrNumber = "hello";
+value = 42; // Both valid
+
+// Discriminated unions
+type Shape =
+    | { kind: "circle"; radius: number }
+    | { kind: "rectangle"; width: number; height: number }
+    | { kind: "square"; size: number };
+
+function getArea(shape: Shape): number {
+    switch (shape.kind) {
+        case "circle":
+            return Math.PI * shape.radius ** 2;
+        case "rectangle":
+            return shape.width * shape.height;
+        case "square":
+            return shape.size ** 2;
+        default:
+            // Exhaustiveness check
+            const _exhaustive: never = shape;
+            return _exhaustive;
+    }
+}
+
+// Intersection types
+type Person = { name: string; age: number };
+type Employee = { employeeId: string; department: string };
+type PersonEmployee = Person & Employee;
+
+let worker: PersonEmployee = {
+    name: "John",
+    age: 30,
+    employeeId: "E001",
+    department: "Engineering"
+};
+```
+
+**Literal Types:**
+```typescript
+// String literals
+type Theme = "light" | "dark" | "auto";
+let currentTheme: Theme = "light";
+
+// Numeric literals
+type DiceRoll = 1 | 2 | 3 | 4 | 5 | 6;
+let roll: DiceRoll = 4;
+
+// Boolean literals
+type Success = true;
+type Failure = false;
+
+// Template literal types
+type EventName<T extends string> = `on${Capitalize<T>}`;
+type ClickEvent = EventName<"click">; // "onClick"
+type HoverEvent = EventName<"hover">; // "onHover"
+
+// Pattern matching with template literals
+type ExtractRouteParams<T extends string> =
+    T extends `${string}/:${infer Param}/${infer Rest}`
+        ? { [K in Param | keyof ExtractRouteParams<`/${Rest}`>]: string }
+        : T extends `${string}/:${infer Param}`
+        ? { [K in Param]: string }
+        : {};
+
+type UserRoute = ExtractRouteParams<"/users/:id/posts/:postId">;
+// { id: string; postId: string }
+```
 
 ### Type System
 
@@ -5115,9 +5856,867 @@ interface Admin extends User {
 - Function parameter contracts
 - Class implementation requirements
 
+### Classes
+
+**TypeScript enhances JavaScript classes with type annotations and access modifiers.**
+
+**Basic Class Syntax:**
+```typescript
+class Person {
+    // Property declarations
+    private _name: string;
+    protected age: number;
+    public email: string;
+    readonly id: string;
+
+    // Constructor with parameter properties
+    constructor(
+        name: string,
+        age: number,
+        email: string,
+        public address?: string // Parameter property
+    ) {
+        this._name = name;
+        this.age = age;
+        this.email = email;
+        this.id = Math.random().toString(36);
+    }
+
+    // Getter and setter
+    get name(): string {
+        return this._name;
+    }
+
+    set name(value: string) {
+        if (value.length < 2) {
+            throw new Error("Name must be at least 2 characters");
+        }
+        this._name = value;
+    }
+
+    // Methods
+    greet(): string {
+        return `Hello, I'm ${this._name}`;
+    }
+
+    // Static methods
+    static createGuest(): Person {
+        return new Person("Guest", 0, "guest@example.com");
+    }
+}
+
+// Inheritance
+class Employee extends Person {
+    constructor(
+        name: string,
+        age: number,
+        email: string,
+        private salary: number,
+        public department: string
+    ) {
+        super(name, age, email);
+    }
+
+    // Override method
+    greet(): string {
+        return `${super.greet()}, I work in ${this.department}`;
+    }
+
+    // Protected method (accessible in subclasses)
+    protected calculateBonus(): number {
+        return this.salary * 0.1;
+    }
+}
+
+// Abstract classes
+abstract class Animal {
+    constructor(protected name: string) {}
+
+    abstract makeSound(): string; // Must be implemented by subclasses
+
+    move(): string {
+        return `${this.name} is moving`;
+    }
+}
+
+class Dog extends Animal {
+    makeSound(): string {
+        return `${this.name} barks`;
+    }
+}
+```
+
+**Access Modifiers:**
+```typescript
+class BankAccount {
+    private balance: number = 0;        // Only accessible within class
+    protected accountType: string;     // Accessible in subclasses
+    public accountNumber: string;      // Accessible everywhere
+    readonly createdAt: Date;          // Cannot be modified after initialization
+
+    constructor(accountNumber: string, accountType: string) {
+        this.accountNumber = accountNumber;
+        this.accountType = accountType;
+        this.createdAt = new Date();
+    }
+
+    private validateAmount(amount: number): boolean {
+        return amount > 0 && amount <= 10000;
+    }
+
+    public deposit(amount: number): void {
+        if (this.validateAmount(amount)) {
+            this.balance += amount;
+        }
+    }
+
+    public getBalance(): number {
+        return this.balance;
+    }
+}
+```
+
+### Functions
+
+**TypeScript provides comprehensive function typing capabilities.**
+
+**Function Type Annotations:**
+```typescript
+// Function declaration
+function add(a: number, b: number): number {
+    return a + b;
+}
+
+// Function expression
+const multiply = function(a: number, b: number): number {
+    return a * b;
+};
+
+// Arrow function
+const divide = (a: number, b: number): number => a / b;
+
+// Optional parameters
+function greet(name: string, greeting?: string): string {
+    return `${greeting || "Hello"}, ${name}!`;
+}
+
+// Default parameters
+function createUser(name: string, age: number = 18): User {
+    return { name, age };
+}
+
+// Rest parameters
+function sum(...numbers: number[]): number {
+    return numbers.reduce((total, num) => total + num, 0);
+}
+
+// Function overloads
+function process(value: string): string;
+function process(value: number): number;
+function process(value: boolean): boolean;
+function process(value: string | number | boolean): string | number | boolean {
+    if (typeof value === "string") {
+        return value.toUpperCase();
+    } else if (typeof value === "number") {
+        return value * 2;
+    } else {
+        return !value;
+    }
+}
+```
+
+**Function Types:**
+```typescript
+// Function type aliases
+type MathOperation = (a: number, b: number) => number;
+type Predicate<T> = (item: T) => boolean;
+type EventHandler<T> = (event: T) => void;
+
+// Using function types
+const operations: { [key: string]: MathOperation } = {
+    add: (a, b) => a + b,
+    subtract: (a, b) => a - b,
+    multiply: (a, b) => a * b,
+    divide: (a, b) => a / b
+};
+
+// Higher-order functions
+function createFilter<T>(predicate: Predicate<T>) {
+    return function(items: T[]): T[] {
+        return items.filter(predicate);
+    };
+}
+
+const filterEven = createFilter<number>(n => n % 2 === 0);
+const evenNumbers = filterEven([1, 2, 3, 4, 5, 6]); // [2, 4, 6]
+
+// Callback functions
+function fetchData<T>(
+    url: string,
+    onSuccess: (data: T) => void,
+    onError: (error: Error) => void
+): void {
+    fetch(url)
+        .then(response => response.json())
+        .then(onSuccess)
+        .catch(onError);
+}
+```
+
+### Generics
+
+**Generics enable writing reusable, type-safe code.**
+
+**Basic Generics:**
+```typescript
+// Generic function
+function identity<T>(arg: T): T {
+    return arg;
+}
+
+const stringResult = identity<string>("hello");
+const numberResult = identity<number>(42);
+const boolResult = identity(true); // Type inference
+
+// Generic interface
+interface Container<T> {
+    value: T;
+    getValue(): T;
+    setValue(value: T): void;
+}
+
+class Box<T> implements Container<T> {
+    constructor(public value: T) {}
+
+    getValue(): T {
+        return this.value;
+    }
+
+    setValue(value: T): void {
+        this.value = value;
+    }
+}
+
+const stringBox = new Box<string>("hello");
+const numberBox = new Box<number>(42);
+```
+
+**Generic Constraints:**
+```typescript
+// Constraint with extends
+interface Lengthwise {
+    length: number;
+}
+
+function logLength<T extends Lengthwise>(arg: T): T {
+    console.log(arg.length);
+    return arg;
+}
+
+logLength("hello");     // ✅ string has length
+logLength([1, 2, 3]);   // ✅ array has length
+// logLength(42);       // ❌ number doesn't have length
+
+// Keyof constraint
+function getProperty<T, K extends keyof T>(obj: T, key: K): T[K] {
+    return obj[key];
+}
+
+const person = { name: "John", age: 30, email: "john@example.com" };
+const name = getProperty(person, "name");     // string
+const age = getProperty(person, "age");       // number
+// const invalid = getProperty(person, "invalid"); // ❌ Error
+
+// Multiple constraints
+interface Serializable {
+    serialize(): string;
+}
+
+interface Timestamped {
+    timestamp: Date;
+}
+
+function processData<T extends Serializable & Timestamped>(data: T): string {
+    return `${data.timestamp.toISOString()}: ${data.serialize()}`;
+}
+```
+
+**Advanced Generic Patterns:**
+```typescript
+// Conditional types
+type NonNullable<T> = T extends null | undefined ? never : T;
+type StringOrNumber<T> = T extends string ? string : number;
+
+// Mapped types
+type Partial<T> = {
+    [P in keyof T]?: T[P];
+};
+
+type Required<T> = {
+    [P in keyof T]-?: T[P];
+};
+
+type Readonly<T> = {
+    readonly [P in keyof T]: T[P];
+};
+
+// Utility types in action
+interface User {
+    id: number;
+    name: string;
+    email: string;
+    password: string;
+}
+
+type PartialUser = Partial<User>;        // All properties optional
+type PublicUser = Omit<User, 'password'>; // Exclude password
+type UserUpdate = Pick<User, 'name' | 'email'>; // Only name and email
+type UserKeys = keyof User;              // 'id' | 'name' | 'email' | 'password'
+
+// Generic API response type
+interface ApiResponse<T> {
+    data: T;
+    status: 'success' | 'error';
+    message?: string;
+    timestamp: string;
+}
+
+interface PaginatedResponse<T> extends ApiResponse<T[]> {
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        hasNext: boolean;
+    };
+}
+
+// Usage
+type UserListResponse = PaginatedResponse<User>;
+type SingleUserResponse = ApiResponse<User>;
+```
+
 ---
 
 ## Webpack
+
+### Webpack Fundamentals
+
+**Webpack is a static module bundler for modern JavaScript applications.**
+
+**Core Concepts:**
+```javascript
+// webpack.config.js
+const path = require('path');
+
+module.exports = {
+    // Entry point - where webpack starts building
+    entry: './src/index.js',
+
+    // Output - where webpack outputs the bundles
+    output: {
+        path: path.resolve(__dirname, 'dist'),
+        filename: 'bundle.js',
+        clean: true // Clean dist folder before each build
+    },
+
+    // Mode - development, production, or none
+    mode: 'development',
+
+    // Loaders - transform files
+    module: {
+        rules: [
+            {
+                test: /\.js$/,
+                exclude: /node_modules/,
+                use: 'babel-loader'
+            }
+        ]
+    },
+
+    // Plugins - extend webpack functionality
+    plugins: [],
+
+    // DevServer - development server configuration
+    devServer: {
+        static: './dist',
+        port: 3000,
+        hot: true
+    }
+};
+```
+
+**Entry Points:**
+```javascript
+// Single entry
+module.exports = {
+    entry: './src/index.js'
+};
+
+// Multiple entries
+module.exports = {
+    entry: {
+        app: './src/app.js',
+        admin: './src/admin.js'
+    },
+    output: {
+        filename: '[name].bundle.js' // app.bundle.js, admin.bundle.js
+    }
+};
+
+// Dynamic entry
+module.exports = {
+    entry: () => {
+        return {
+            app: './src/app.js',
+            vendor: ['react', 'react-dom']
+        };
+    }
+};
+```
+
+**Output Configuration:**
+```javascript
+module.exports = {
+    output: {
+        // Output directory
+        path: path.resolve(__dirname, 'dist'),
+
+        // Filename patterns
+        filename: '[name].[contenthash].js', // Cache busting
+        chunkFilename: '[name].[contenthash].chunk.js',
+
+        // Asset filenames
+        assetModuleFilename: 'assets/[hash][ext][query]',
+
+        // Public path for assets
+        publicPath: '/static/',
+
+        // Clean output directory
+        clean: true,
+
+        // Library configuration (for libraries)
+        library: {
+            name: 'MyLibrary',
+            type: 'umd'
+        }
+    }
+};
+```
+
+### Build Process
+
+**Understanding how webpack transforms and bundles code.**
+
+**Module Resolution:**
+```javascript
+// webpack resolves modules in this order:
+// 1. Exact file match
+import './file.js';
+
+// 2. File with extension
+import './file'; // looks for file.js, file.json, etc.
+
+// 3. Directory with index file
+import './directory'; // looks for directory/index.js
+
+// 4. Node modules
+import 'lodash'; // looks in node_modules/lodash
+
+// Custom resolution
+module.exports = {
+    resolve: {
+        // File extensions to try
+        extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
+
+        // Module directories
+        modules: ['node_modules', 'src'],
+
+        // Path aliases
+        alias: {
+            '@': path.resolve(__dirname, 'src'),
+            'components': path.resolve(__dirname, 'src/components'),
+            'utils': path.resolve(__dirname, 'src/utils')
+        },
+
+        // Fallbacks for Node.js modules
+        fallback: {
+            "crypto": require.resolve("crypto-browserify"),
+            "stream": require.resolve("stream-browserify")
+        }
+    }
+};
+```
+
+**Dependency Graph:**
+```javascript
+// Entry file: src/index.js
+import { header } from './components/header.js';
+import { footer } from './components/footer.js';
+import './styles/main.css';
+
+// Webpack builds dependency graph:
+// index.js
+//   ├── components/header.js
+//   │   └── styles/header.css
+//   ├── components/footer.js
+//   │   └── styles/footer.css
+//   └── styles/main.css
+//       └── fonts/roboto.woff2
+
+// All dependencies are bundled together
+```
+
+**Code Splitting:**
+```javascript
+// Dynamic imports for code splitting
+async function loadModule() {
+    const { default: heavyModule } = await import('./heavy-module.js');
+    return heavyModule;
+}
+
+// Route-based splitting
+const Home = lazy(() => import('./pages/Home'));
+const About = lazy(() => import('./pages/About'));
+
+// Vendor splitting
+module.exports = {
+    optimization: {
+        splitChunks: {
+            chunks: 'all',
+            cacheGroups: {
+                vendor: {
+                    test: /[\\/]node_modules[\\/]/,
+                    name: 'vendors',
+                    chunks: 'all'
+                },
+                common: {
+                    name: 'common',
+                    minChunks: 2,
+                    chunks: 'all',
+                    enforce: true
+                }
+            }
+        }
+    }
+};
+```
+
+### Loaders
+
+**Loaders transform files before they're added to the dependency graph.**
+
+**Common Loaders:**
+```javascript
+module.exports = {
+    module: {
+        rules: [
+            // JavaScript/TypeScript
+            {
+                test: /\.(js|jsx|ts|tsx)$/,
+                exclude: /node_modules/,
+                use: {
+                    loader: 'babel-loader',
+                    options: {
+                        presets: ['@babel/preset-env', '@babel/preset-react']
+                    }
+                }
+            },
+
+            // CSS
+            {
+                test: /\.css$/,
+                use: ['style-loader', 'css-loader']
+            },
+
+            // Sass/SCSS
+            {
+                test: /\.s[ac]ss$/,
+                use: [
+                    'style-loader',
+                    'css-loader',
+                    {
+                        loader: 'sass-loader',
+                        options: {
+                            sassOptions: {
+                                includePaths: ['src/styles']
+                            }
+                        }
+                    }
+                ]
+            },
+
+            // Images
+            {
+                test: /\.(png|jpe?g|gif|svg)$/,
+                type: 'asset/resource',
+                generator: {
+                    filename: 'images/[hash][ext][query]'
+                }
+            },
+
+            // Fonts
+            {
+                test: /\.(woff|woff2|eot|ttf|otf)$/,
+                type: 'asset/resource',
+                generator: {
+                    filename: 'fonts/[hash][ext][query]'
+                }
+            },
+
+            // JSON
+            {
+                test: /\.json$/,
+                type: 'json'
+            }
+        ]
+    }
+};
+```
+
+**Custom Loader:**
+```javascript
+// simple-loader.js
+module.exports = function(source) {
+    // Transform the source code
+    const transformedSource = source.replace(/console\.log/g, 'console.info');
+
+    // Return the transformed code
+    return transformedSource;
+};
+
+// Usage in webpack.config.js
+module.exports = {
+    module: {
+        rules: [
+            {
+                test: /\.js$/,
+                use: path.resolve(__dirname, 'loaders/simple-loader.js')
+            }
+        ]
+    }
+};
+```
+
+### Plugins
+
+**Plugins extend webpack's functionality and perform tasks that loaders can't.**
+
+**Common Plugins:**
+```javascript
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const webpack = require('webpack');
+
+module.exports = {
+    plugins: [
+        // Generate HTML file
+        new HtmlWebpackPlugin({
+            template: './src/index.html',
+            filename: 'index.html',
+            minify: {
+                removeComments: true,
+                collapseWhitespace: true
+            }
+        }),
+
+        // Extract CSS to separate files
+        new MiniCssExtractPlugin({
+            filename: '[name].[contenthash].css',
+            chunkFilename: '[id].[contenthash].css'
+        }),
+
+        // Clean output directory
+        new CleanWebpackPlugin(),
+
+        // Define global constants
+        new webpack.DefinePlugin({
+            'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+            'process.env.API_URL': JSON.stringify(process.env.API_URL)
+        }),
+
+        // Provide global modules
+        new webpack.ProvidePlugin({
+            $: 'jquery',
+            jQuery: 'jquery',
+            React: 'react'
+        }),
+
+        // Bundle analyzer
+        new (require('webpack-bundle-analyzer').BundleAnalyzerPlugin)({
+            analyzerMode: 'static',
+            openAnalyzer: false
+        })
+    ]
+};
+```
+
+**Custom Plugin:**
+```javascript
+// custom-plugin.js
+class CustomPlugin {
+    apply(compiler) {
+        compiler.hooks.emit.tapAsync('CustomPlugin', (compilation, callback) => {
+            // Access compilation assets
+            const assets = compilation.assets;
+
+            // Create a new asset
+            const manifest = Object.keys(assets).map(filename => ({
+                name: filename,
+                size: assets[filename].size()
+            }));
+
+            // Add manifest to compilation
+            compilation.assets['manifest.json'] = {
+                source: () => JSON.stringify(manifest, null, 2),
+                size: () => JSON.stringify(manifest, null, 2).length
+            };
+
+            callback();
+        });
+    }
+}
+
+module.exports = CustomPlugin;
+```
+
+### Loaders vs Plugins
+
+**Understanding the difference between loaders and plugins.**
+
+**Loaders:**
+```javascript
+// Loaders transform individual files
+// They work at the module level
+// Process files as they're imported
+
+module.exports = {
+    module: {
+        rules: [
+            {
+                test: /\.scss$/,
+                use: [
+                    'style-loader',    // Injects CSS into DOM
+                    'css-loader',      // Resolves CSS imports
+                    'sass-loader'      // Compiles Sass to CSS
+                ]
+            }
+        ]
+    }
+};
+
+// Loader chain: sass-loader → css-loader → style-loader
+// Each loader receives output from previous loader
+```
+
+**Plugins:**
+```javascript
+// Plugins work at the compilation level
+// They can access the entire compilation
+// Perform tasks that affect the whole bundle
+
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+
+module.exports = {
+    plugins: [
+        new HtmlWebpackPlugin({
+            template: './src/index.html'
+        })
+    ]
+};
+
+// Plugin hooks into webpack's compilation process
+// Can modify assets, add new files, etc.
+```
+
+**When to Use Each:**
+```
+Loaders:
+- Transform file content (TypeScript → JavaScript)
+- Process imports (CSS, images, fonts)
+- Apply transformations (Babel, PostCSS)
+- Work with individual modules
+
+Plugins:
+- Generate files (HTML, manifest)
+- Optimize bundles (minification, compression)
+- Define environment variables
+- Analyze bundle composition
+- Work with entire compilation
+```
+
+### Hot Module Replacement (HMR)
+
+**HMR allows updating modules without full page refresh during development.**
+
+**HMR Configuration:**
+```javascript
+// webpack.config.js
+module.exports = {
+    mode: 'development',
+    devServer: {
+        hot: true,           // Enable HMR
+        liveReload: false    // Disable live reload to use HMR only
+    },
+    plugins: [
+        new webpack.HotModuleReplacementPlugin() // Usually automatic in dev mode
+    ]
+};
+```
+
+**HMR API Usage:**
+```javascript
+// main.js
+import { render } from './app.js';
+
+render();
+
+// Accept HMR updates for this module
+if (module.hot) {
+    module.hot.accept('./app.js', () => {
+        // Re-import and re-render when app.js changes
+        const { render } = require('./app.js');
+        render();
+    });
+
+    // Accept updates for CSS modules
+    module.hot.accept('./styles.css');
+
+    // Handle disposal
+    module.hot.dispose((data) => {
+        // Clean up before module is replaced
+        data.cleanup = true;
+    });
+}
+```
+
+**React HMR:**
+```javascript
+// Using React Fast Refresh
+const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
+
+module.exports = {
+    plugins: [
+        new ReactRefreshWebpackPlugin()
+    ],
+    module: {
+        rules: [
+            {
+                test: /\.(js|jsx)$/,
+                exclude: /node_modules/,
+                use: {
+                    loader: 'babel-loader',
+                    options: {
+                        plugins: [
+                            require.resolve('react-refresh/babel')
+                        ]
+                    }
+                }
+            }
+        ]
+    }
+};
+```
 
 ### Core Concepts
 
@@ -5198,6 +6797,486 @@ optimization: {
 **Tree Shaking:** Eliminates dead code
 **Bundle Analysis:** webpack-bundle-analyzer
 **Caching:** Long-term caching with content hashes
+
+### Performance Optimization
+
+**Webpack provides various optimization techniques for production builds.**
+
+**Production Configuration:**
+```javascript
+const path = require('path');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
+
+module.exports = {
+    mode: 'production',
+
+    optimization: {
+        // Minimize JavaScript
+        minimize: true,
+        minimizer: [
+            new TerserPlugin({
+                terserOptions: {
+                    compress: {
+                        drop_console: true, // Remove console.log
+                        drop_debugger: true
+                    }
+                }
+            }),
+            new CssMinimizerPlugin()
+        ],
+
+        // Split chunks
+        splitChunks: {
+            chunks: 'all',
+            cacheGroups: {
+                vendor: {
+                    test: /[\\/]node_modules[\\/]/,
+                    name: 'vendors',
+                    chunks: 'all'
+                }
+            }
+        },
+
+        // Runtime chunk
+        runtimeChunk: 'single'
+    },
+
+    // Source maps for production
+    devtool: 'source-map',
+
+    // Performance hints
+    performance: {
+        maxAssetSize: 250000,
+        maxEntrypointSize: 250000,
+        hints: 'warning'
+    }
+};
+```
+
+**Tree Shaking:**
+```javascript
+// Enable tree shaking
+module.exports = {
+    mode: 'production', // Enables tree shaking automatically
+
+    // Ensure modules are ES6 modules
+    module: {
+        rules: [
+            {
+                test: /\.js$/,
+                use: {
+                    loader: 'babel-loader',
+                    options: {
+                        presets: [
+                            ['@babel/preset-env', {
+                                modules: false // Keep ES6 modules for tree shaking
+                            }]
+                        ]
+                    }
+                }
+            }
+        ]
+    }
+};
+
+// Mark side-effect-free modules in package.json
+{
+    "sideEffects": false,
+    // or specify files with side effects
+    "sideEffects": ["*.css", "*.scss", "./src/polyfills.js"]
+}
+
+// Use ES6 imports for tree shaking
+import { debounce } from 'lodash-es'; // ✅ Tree shakeable
+// import _ from 'lodash'; // ❌ Imports entire library
+```
+
+**Code Splitting Strategies:**
+```javascript
+// 1. Entry point splitting
+module.exports = {
+    entry: {
+        main: './src/index.js',
+        vendor: './src/vendor.js'
+    }
+};
+
+// 2. Dynamic imports
+async function loadChart() {
+    const { Chart } = await import('chart.js');
+    return Chart;
+}
+
+// 3. SplitChunksPlugin
+module.exports = {
+    optimization: {
+        splitChunks: {
+            chunks: 'all',
+            minSize: 20000,
+            maxSize: 244000,
+            cacheGroups: {
+                default: {
+                    minChunks: 2,
+                    priority: -20,
+                    reuseExistingChunk: true
+                },
+                vendor: {
+                    test: /[\\/]node_modules[\\/]/,
+                    priority: -10,
+                    reuseExistingChunk: true
+                },
+                react: {
+                    test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
+                    name: 'react',
+                    chunks: 'all'
+                }
+            }
+        }
+    }
+};
+```
+
+### Build Optimization
+
+**Optimizing build performance and output size.**
+
+**Build Performance:**
+```javascript
+module.exports = {
+    // Cache compilation results
+    cache: {
+        type: 'filesystem',
+        buildDependencies: {
+            config: [__filename]
+        }
+    },
+
+    // Resolve optimizations
+    resolve: {
+        modules: [path.resolve(__dirname, 'src'), 'node_modules'],
+        extensions: ['.js', '.jsx'], // Limit extensions
+        alias: {
+            '@': path.resolve(__dirname, 'src')
+        }
+    },
+
+    // Module optimizations
+    module: {
+        rules: [
+            {
+                test: /\.js$/,
+                include: path.resolve(__dirname, 'src'), // Limit scope
+                exclude: /node_modules/,
+                use: 'babel-loader'
+            }
+        ]
+    },
+
+    // Parallel processing
+    optimization: {
+        minimizer: [
+            new TerserPlugin({
+                parallel: true // Use multiple processes
+            })
+        ]
+    }
+};
+```
+
+**Bundle Analysis:**
+```javascript
+const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
+
+module.exports = {
+    plugins: [
+        new BundleAnalyzerPlugin({
+            analyzerMode: 'static',
+            reportFilename: 'bundle-report.html',
+            openAnalyzer: false
+        })
+    ]
+};
+
+// Command line analysis
+// npx webpack-bundle-analyzer dist/static/js/*.js
+```
+
+**Asset Optimization:**
+```javascript
+const ImageMinimizerPlugin = require('image-minimizer-webpack-plugin');
+
+module.exports = {
+    optimization: {
+        minimizer: [
+            new ImageMinimizerPlugin({
+                minimizer: {
+                    implementation: ImageMinimizerPlugin.imageminMinify,
+                    options: {
+                        plugins: [
+                            ['imagemin-mozjpeg', { quality: 80 }],
+                            ['imagemin-pngquant', { quality: [0.6, 0.8] }]
+                        ]
+                    }
+                }
+            })
+        ]
+    },
+
+    module: {
+        rules: [
+            {
+                test: /\.(png|jpe?g|gif)$/,
+                type: 'asset',
+                parser: {
+                    dataUrlCondition: {
+                        maxSize: 8 * 1024 // Inline images < 8kb
+                    }
+                }
+            }
+        ]
+    }
+};
+```
+
+### Development Proxy
+
+**Configuring proxy for API calls during development.**
+
+**DevServer Proxy:**
+```javascript
+module.exports = {
+    devServer: {
+        port: 3000,
+        proxy: {
+            // Proxy API calls
+            '/api': {
+                target: 'http://localhost:8080',
+                changeOrigin: true,
+                pathRewrite: {
+                    '^/api': '' // Remove /api prefix
+                }
+            },
+
+            // Multiple API endpoints
+            '/auth': {
+                target: 'http://localhost:8081',
+                secure: false, // For self-signed certificates
+                changeOrigin: true
+            },
+
+            // WebSocket proxy
+            '/socket.io': {
+                target: 'http://localhost:8080',
+                ws: true
+            },
+
+            // Custom proxy function
+            '/custom': {
+                target: 'http://localhost:8080',
+                bypass: function(req, res, proxyOptions) {
+                    if (req.headers.accept.indexOf('html') !== -1) {
+                        return '/index.html'; // Serve index.html for HTML requests
+                    }
+                }
+            }
+        },
+
+        // CORS headers
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+            'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization'
+        }
+    }
+};
+```
+
+**Environment-specific Configuration:**
+```javascript
+// webpack.dev.js
+const { merge } = require('webpack-merge');
+const common = require('./webpack.common.js');
+
+module.exports = merge(common, {
+    mode: 'development',
+    devtool: 'inline-source-map',
+    devServer: {
+        static: './dist',
+        hot: true,
+        proxy: {
+            '/api': 'http://localhost:3001'
+        }
+    }
+});
+
+// webpack.prod.js
+const { merge } = require('webpack-merge');
+const common = require('./webpack.common.js');
+
+module.exports = merge(common, {
+    mode: 'production',
+    devtool: 'source-map'
+});
+```
+
+### Alternative Bundlers
+
+**Overview of modern alternatives to webpack.**
+
+**Vite:**
+```javascript
+// vite.config.js
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+    plugins: [react()],
+    server: {
+        port: 3000,
+        proxy: {
+            '/api': 'http://localhost:8080'
+        }
+    },
+    build: {
+        outDir: 'dist',
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    vendor: ['react', 'react-dom']
+                }
+            }
+        }
+    }
+});
+
+// Benefits:
+// - Faster dev server (ES modules + esbuild)
+// - Hot module replacement out of the box
+// - Simpler configuration
+// - Built on Rollup for production
+```
+
+**Parcel:**
+```json
+// package.json
+{
+    "scripts": {
+        "start": "parcel src/index.html",
+        "build": "parcel build src/index.html"
+    }
+}
+
+// Benefits:
+// - Zero configuration
+// - Automatic dependency resolution
+// - Built-in dev server
+// - Code splitting out of the box
+```
+
+**esbuild:**
+```javascript
+// build.js
+const esbuild = require('esbuild');
+
+esbuild.build({
+    entryPoints: ['src/index.js'],
+    bundle: true,
+    outfile: 'dist/bundle.js',
+    minify: true,
+    sourcemap: true,
+    target: ['es2020']
+}).catch(() => process.exit(1));
+
+// Benefits:
+// - Extremely fast (written in Go)
+// - Built-in TypeScript support
+// - Tree shaking
+// - Minification
+```
+
+**Rollup:**
+```javascript
+// rollup.config.js
+import resolve from '@rollup/plugin-node-resolve';
+import commonjs from '@rollup/plugin-commonjs';
+import { terser } from 'rollup-plugin-terser';
+
+export default {
+    input: 'src/index.js',
+    output: {
+        file: 'dist/bundle.js',
+        format: 'iife'
+    },
+    plugins: [
+        resolve(),
+        commonjs(),
+        terser()
+    ]
+};
+
+// Benefits:
+// - Excellent tree shaking
+// - Smaller bundles
+// - ES6 modules first
+// - Great for libraries
+```
+
+**Comparison:**
+```
+Webpack:
++ Mature ecosystem
++ Extensive plugin system
++ Flexible configuration
+- Complex configuration
+- Slower build times
+
+Vite:
++ Fast development
++ Simple configuration
++ Modern defaults
+- Newer ecosystem
+- Different dev/prod bundlers
+
+Parcel:
++ Zero configuration
++ Fast setup
++ Good defaults
+- Less flexible
+- Smaller ecosystem
+
+esbuild:
++ Extremely fast
++ Simple API
++ Built-in features
+- Limited plugins
+- Less mature
+
+Rollup:
++ Excellent tree shaking
++ Clean output
++ ES6 focused
+- More complex for apps
+- Better for libraries
+```
+
+---
+
+## Conclusion
+
+This comprehensive guide covers the essential frontend interview topics with practical implementations and real-world applications. Each section provides both theoretical understanding and hands-on code examples that demonstrate proficiency in modern frontend development.
+
+Key areas of focus for interview preparation:
+1. **JavaScript fundamentals** - closures, prototypes, async programming
+2. **React ecosystem** - hooks, performance, state management
+3. **CSS layout techniques** - flexbox, grid, responsive design
+4. **Modern JavaScript** - ES6+ features, modules, promises
+5. **Web protocols** - HTTP evolution, security, real-time communication
+6. **Type safety** - TypeScript interfaces, generics, type system
+7. **Build tools** - webpack configuration, optimization, development workflow
+
+Understanding these concepts deeply and being able to implement them practically will provide a strong foundation for frontend development interviews and real-world projects.
 
 ---
 
