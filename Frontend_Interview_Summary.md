@@ -3559,6 +3559,972 @@ function BetterListComponent({ items }) {
 }
 ```
 
+### State vs Props
+
+**Understanding the difference between state and props in React.**
+
+**Props (Properties):**
+```javascript
+// Props are read-only data passed from parent to child
+function ChildComponent({ name, age, onUpdate, children }) {
+    // Props cannot be modified directly
+    // name = "New Name"; // ❌ This would cause an error
+
+    return (
+        <div>
+            <h2>{name}</h2>
+            <p>Age: {age}</p>
+            <button onClick={() => onUpdate(name)}>
+                Update Parent
+            </button>
+            {children}
+        </div>
+    );
+}
+
+function ParentComponent() {
+    const [users, setUsers] = useState([
+        { id: 1, name: 'John', age: 25 },
+        { id: 2, name: 'Jane', age: 30 }
+    ]);
+
+    const handleUpdate = (name) => {
+        console.log(`Update requested for ${name}`);
+    };
+
+    return (
+        <div>
+            {users.map(user => (
+                <ChildComponent
+                    key={user.id}
+                    name={user.name}
+                    age={user.age}
+                    onUpdate={handleUpdate}
+                >
+                    <p>Additional content</p>
+                </ChildComponent>
+            ))}
+        </div>
+    );
+}
+```
+
+**Key Differences:**
+
+| Aspect | Props | State |
+|--------|-------|-------|
+| **Mutability** | Immutable (read-only) | Mutable (via setState) |
+| **Source** | Passed from parent | Internal to component |
+| **Purpose** | Configure component | Track changing data |
+| **Triggers re-render** | When parent re-renders | When state changes |
+| **Access** | this.props / function params | this.state / useState |
+
+### Component Communication
+
+**Different patterns for components to communicate with each other.**
+
+**Parent to Child (Props):**
+```javascript
+function Parent() {
+    const [message, setMessage] = useState("Hello from parent");
+
+    return (
+        <Child
+            message={message}
+            onMessageChange={setMessage}
+        />
+    );
+}
+
+function Child({ message, onMessageChange }) {
+    return (
+        <div>
+            <p>{message}</p>
+            <button onClick={() => onMessageChange("Updated message")}>
+                Update Message
+            </button>
+        </div>
+    );
+}
+```
+
+**Child to Parent (Callback Props):**
+```javascript
+function Parent() {
+    const [data, setData] = useState([]);
+
+    const handleDataFromChild = (newData) => {
+        setData(prevData => [...prevData, newData]);
+    };
+
+    return (
+        <div>
+            <Child onDataSubmit={handleDataFromChild} />
+            <DataDisplay data={data} />
+        </div>
+    );
+}
+
+function Child({ onDataSubmit }) {
+    const [input, setInput] = useState('');
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onDataSubmit(input);
+        setInput('');
+    };
+
+    return (
+        <form onSubmit={handleSubmit}>
+            <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+            />
+            <button type="submit">Submit</button>
+        </form>
+    );
+}
+```
+
+**Sibling Communication (Lift State Up):**
+```javascript
+function Parent() {
+    const [selectedItem, setSelectedItem] = useState(null);
+
+    return (
+        <div>
+            <ItemList onItemSelect={setSelectedItem} />
+            <ItemDetails item={selectedItem} />
+        </div>
+    );
+}
+
+function ItemList({ onItemSelect }) {
+    const items = ['Item 1', 'Item 2', 'Item 3'];
+
+    return (
+        <ul>
+            {items.map(item => (
+                <li key={item} onClick={() => onItemSelect(item)}>
+                    {item}
+                </li>
+            ))}
+        </ul>
+    );
+}
+
+function ItemDetails({ item }) {
+    return (
+        <div>
+            {item ? `Selected: ${item}` : 'No item selected'}
+        </div>
+    );
+}
+```
+
+**Context API (Deep Component Tree):**
+```javascript
+const ThemeContext = createContext();
+const UserContext = createContext();
+
+function App() {
+    const [theme, setTheme] = useState('light');
+    const [user, setUser] = useState(null);
+
+    return (
+        <ThemeContext.Provider value={{ theme, setTheme }}>
+            <UserContext.Provider value={{ user, setUser }}>
+                <Header />
+                <Main />
+                <Footer />
+            </UserContext.Provider>
+        </ThemeContext.Provider>
+    );
+}
+
+function Header() {
+    const { theme, setTheme } = useContext(ThemeContext);
+    const { user } = useContext(UserContext);
+
+    return (
+        <header className={`header-${theme}`}>
+            <h1>Welcome {user?.name || 'Guest'}</h1>
+            <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+                Toggle Theme
+            </button>
+        </header>
+    );
+}
+```
+
+### Controlled vs Uncontrolled Components
+
+**Two approaches to handling form inputs in React.**
+
+**Controlled Components:**
+```javascript
+function ControlledForm() {
+    const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        message: ''
+    });
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        console.log('Form data:', formData);
+    };
+
+    return (
+        <form onSubmit={handleSubmit}>
+            <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="Name"
+            />
+            <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="Email"
+            />
+            <textarea
+                name="message"
+                value={formData.message}
+                onChange={handleChange}
+                placeholder="Message"
+            />
+            <button type="submit">Submit</button>
+        </form>
+    );
+}
+```
+
+**Uncontrolled Components:**
+```javascript
+function UncontrolledForm() {
+    const nameRef = useRef();
+    const emailRef = useRef();
+    const messageRef = useRef();
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+
+        const formData = {
+            name: nameRef.current.value,
+            email: emailRef.current.value,
+            message: messageRef.current.value
+        };
+
+        console.log('Form data:', formData);
+    };
+
+    return (
+        <form onSubmit={handleSubmit}>
+            <input
+                type="text"
+                ref={nameRef}
+                defaultValue=""
+                placeholder="Name"
+            />
+            <input
+                type="email"
+                ref={emailRef}
+                defaultValue=""
+                placeholder="Email"
+            />
+            <textarea
+                ref={messageRef}
+                defaultValue=""
+                placeholder="Message"
+            />
+            <button type="submit">Submit</button>
+        </form>
+    );
+}
+```
+
+**When to Use Each:**
+
+| Aspect | Controlled | Uncontrolled |
+|--------|------------|--------------|
+| **Data flow** | React state controls value | DOM controls value |
+| **Validation** | Real-time validation | Validation on submit |
+| **Performance** | Re-renders on every change | No re-renders |
+| **Testing** | Easier to test | Harder to test |
+| **Use case** | Complex forms, validation | Simple forms, performance critical |
+
+### React Keys
+
+**Keys help React identify which items have changed, been added, or removed.**
+
+**Why Keys Matter:**
+```javascript
+// Without proper keys - React can't efficiently update
+function BadList({ items }) {
+    return (
+        <ul>
+            {items.map((item, index) => (
+                <li key={index}> {/* ❌ Using index as key */}
+                    <input type="text" defaultValue={item.name} />
+                    <button onClick={() => deleteItem(item.id)}>Delete</button>
+                </li>
+            ))}
+        </ul>
+    );
+}
+
+// With proper keys - React can efficiently update
+function GoodList({ items }) {
+    return (
+        <ul>
+            {items.map(item => (
+                <li key={item.id}> {/* ✅ Using unique, stable ID */}
+                    <input type="text" defaultValue={item.name} />
+                    <button onClick={() => deleteItem(item.id)}>Delete</button>
+                </li>
+            ))}
+        </ul>
+    );
+}
+```
+
+**Key Rules:**
+```javascript
+// ✅ Good key examples
+<div key={user.id}>           // Unique ID
+<div key={`${user.id}-${user.email}`}> // Composite key
+<div key={item.slug}>         // Unique slug
+
+// ❌ Bad key examples
+<div key={Math.random()}>     // Random (changes every render)
+<div key={index}>             // Array index (not stable)
+<div key={item.name}>         // Non-unique value
+```
+
+**Dynamic Lists:**
+```javascript
+function TodoList() {
+    const [todos, setTodos] = useState([
+        { id: 1, text: 'Learn React', completed: false },
+        { id: 2, text: 'Build an app', completed: false }
+    ]);
+
+    const addTodo = (text) => {
+        const newTodo = {
+            id: Date.now(), // Simple ID generation
+            text,
+            completed: false
+        };
+        setTodos(prev => [...prev, newTodo]);
+    };
+
+    const toggleTodo = (id) => {
+        setTodos(prev =>
+            prev.map(todo =>
+                todo.id === id
+                    ? { ...todo, completed: !todo.completed }
+                    : todo
+            )
+        );
+    };
+
+    return (
+        <div>
+            {todos.map(todo => (
+                <TodoItem
+                    key={todo.id} // ✅ Stable, unique key
+                    todo={todo}
+                    onToggle={toggleTodo}
+                />
+            ))}
+        </div>
+    );
+}
+```
+
+### React Refs
+
+**Refs provide access to DOM elements or component instances.**
+
+**useRef Hook:**
+```javascript
+function RefExamples() {
+    const inputRef = useRef(null);
+    const videoRef = useRef(null);
+    const countRef = useRef(0);
+
+    // Focus input
+    const focusInput = () => {
+        inputRef.current.focus();
+    };
+
+    // Control video
+    const playVideo = () => {
+        videoRef.current.play();
+    };
+
+    const pauseVideo = () => {
+        videoRef.current.pause();
+    };
+
+    // Mutable value (doesn't trigger re-render)
+    const incrementCount = () => {
+        countRef.current += 1;
+        console.log('Count:', countRef.current);
+    };
+
+    return (
+        <div>
+            <input ref={inputRef} placeholder="Focus me" />
+            <button onClick={focusInput}>Focus Input</button>
+
+            <video ref={videoRef} src="video.mp4" />
+            <button onClick={playVideo}>Play</button>
+            <button onClick={pauseVideo}>Pause</button>
+
+            <button onClick={incrementCount}>Increment Count</button>
+        </div>
+    );
+}
+```
+
+**Forwarding Refs:**
+```javascript
+// Forward ref to allow parent access to child's DOM
+const FancyInput = forwardRef((props, ref) => (
+    <div className="fancy-input">
+        <input ref={ref} {...props} />
+    </div>
+));
+
+function Parent() {
+    const inputRef = useRef();
+
+    return (
+        <div>
+            <FancyInput ref={inputRef} placeholder="Type here" />
+            <button onClick={() => inputRef.current.focus()}>
+                Focus Input
+            </button>
+        </div>
+    );
+}
+```
+
+### Event Binding
+
+**Different ways to bind event handlers in React.**
+
+**Function Components:**
+```javascript
+function EventBindingFunction() {
+    const [count, setCount] = useState(0);
+
+    // Method 1: useCallback for optimization
+    const handleClick = useCallback(() => {
+        setCount(prev => prev + 1);
+    }, []);
+
+    // Method 2: Regular function (recreated on each render)
+    const handleClick2 = () => {
+        setCount(prev => prev + 1);
+    };
+
+    return (
+        <div>
+            <p>Count: {count}</p>
+
+            <button onClick={handleClick}>
+                Optimized Click
+            </button>
+
+            <button onClick={handleClick2}>
+                Regular Click
+            </button>
+
+            <button onClick={() => setCount(prev => prev + 1)}>
+                Inline Click
+            </button>
+        </div>
+    );
+}
+```
+
+### SyntheticEvent
+
+**React's cross-browser event wrapper.**
+
+**SyntheticEvent Properties:**
+```javascript
+function EventExample() {
+    const handleEvent = (event) => {
+        // SyntheticEvent properties
+        console.log('Event type:', event.type);
+        console.log('Target element:', event.target);
+        console.log('Current target:', event.currentTarget);
+
+        // Prevent default behavior
+        event.preventDefault();
+
+        // Stop event propagation
+        event.stopPropagation();
+
+        // Mouse events
+        if (event.type === 'click') {
+            console.log('Mouse position:', event.clientX, event.clientY);
+            console.log('Modifier keys:', {
+                ctrl: event.ctrlKey,
+                shift: event.shiftKey,
+                alt: event.altKey
+            });
+        }
+
+        // Keyboard events
+        if (event.type === 'keydown') {
+            console.log('Key pressed:', event.key);
+            console.log('Key code:', event.keyCode);
+        }
+    };
+
+    return (
+        <div>
+            <button onClick={handleEvent}>Click me</button>
+            <input onChange={handleEvent} onKeyDown={handleEvent} />
+        </div>
+    );
+}
+```
+
+### Higher Order Components (HOC)
+
+**HOCs are functions that take a component and return a new component.**
+
+**Basic HOC Pattern:**
+```javascript
+// HOC that adds loading functionality
+function withLoading(WrappedComponent) {
+    return function WithLoadingComponent(props) {
+        if (props.isLoading) {
+            return <div>Loading...</div>;
+        }
+
+        return <WrappedComponent {...props} />;
+    };
+}
+
+// Usage
+const UserList = ({ users }) => (
+    <ul>
+        {users.map(user => (
+            <li key={user.id}>{user.name}</li>
+        ))}
+    </ul>
+);
+
+const UserListWithLoading = withLoading(UserList);
+```
+
+**Authentication HOC:**
+```javascript
+function withAuth(WrappedComponent) {
+    return function WithAuthComponent(props) {
+        const { user, isAuthenticated } = useAuth();
+
+        if (!isAuthenticated) {
+            return <LoginForm />;
+        }
+
+        return <WrappedComponent {...props} user={user} />;
+    };
+}
+```
+
+### Render Props
+
+**Render props is a pattern for sharing code between components using a prop whose value is a function.**
+
+**Basic Render Props:**
+```javascript
+class MouseTracker extends React.Component {
+    state = { x: 0, y: 0 };
+
+    handleMouseMove = (event) => {
+        this.setState({
+            x: event.clientX,
+            y: event.clientY
+        });
+    };
+
+    render() {
+        return (
+            <div onMouseMove={this.handleMouseMove}>
+                {this.props.render(this.state)}
+            </div>
+        );
+    }
+}
+
+// Usage
+function App() {
+    return (
+        <MouseTracker
+            render={({ x, y }) => (
+                <h1>Mouse position: ({x}, {y})</h1>
+            )}
+        />
+    );
+}
+```
+
+**Function as Children:**
+```javascript
+class DataFetcher extends React.Component {
+    state = { data: null, loading: true, error: null };
+
+    componentDidMount() {
+        fetch(this.props.url)
+            .then(response => response.json())
+            .then(data => this.setState({ data, loading: false }))
+            .catch(error => this.setState({ error, loading: false }));
+    }
+
+    render() {
+        return this.props.children(this.state);
+    }
+}
+
+// Usage
+function UserProfile({ userId }) {
+    return (
+        <DataFetcher url={`/api/users/${userId}`}>
+            {({ data, loading, error }) => {
+                if (loading) return <div>Loading...</div>;
+                if (error) return <div>Error: {error.message}</div>;
+                return <div>Hello, {data.name}!</div>;
+            }}
+        </DataFetcher>
+    );
+}
+```
+
+**Modern Hook Alternative:**
+```javascript
+// Custom hook replaces render props pattern
+function useMousePosition() {
+    const [position, setPosition] = useState({ x: 0, y: 0 });
+
+    useEffect(() => {
+        const handleMouseMove = (event) => {
+            setPosition({ x: event.clientX, y: event.clientY });
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        return () => window.removeEventListener('mousemove', handleMouseMove);
+    }, []);
+
+    return position;
+}
+
+// Usage
+function App() {
+    const { x, y } = useMousePosition();
+    return <h1>Mouse position: ({x}, {y})</h1>;
+}
+```
+
+### React Fiber
+
+**React Fiber is the new reconciliation algorithm in React 16+.**
+
+**Key Concepts:**
+```javascript
+// Fiber enables:
+// 1. Incremental rendering - work can be split into chunks
+// 2. Ability to pause, abort, or reuse work
+// 3. Priority assignment to different types of updates
+// 4. Concurrent features
+
+// Priority levels (simplified)
+const priorities = {
+    Immediate: 1,     // User input, animations
+    UserBlocking: 2,  // User interactions
+    Normal: 3,        // Network responses
+    Low: 4,           // Analytics, logging
+    Idle: 5           // Background tasks
+};
+
+// Time slicing example
+function heavyComponent() {
+    // Before Fiber: would block the main thread
+    const items = [];
+    for (let i = 0; i < 10000; i++) {
+        items.push(<Item key={i} data={complexCalculation(i)} />);
+    }
+    return <div>{items}</div>;
+}
+
+// With Fiber: work is split into chunks
+// React can pause rendering to handle higher priority updates
+```
+
+**Concurrent Features:**
+```javascript
+// React 18 concurrent features enabled by Fiber
+import { startTransition, useDeferredValue } from 'react';
+
+function SearchResults() {
+    const [query, setQuery] = useState('');
+    const [results, setResults] = useState([]);
+
+    // Defer expensive updates
+    const deferredQuery = useDeferredValue(query);
+
+    const handleSearch = (newQuery) => {
+        setQuery(newQuery); // Immediate update for input
+
+        // Mark expensive update as transition
+        startTransition(() => {
+            setResults(searchData(newQuery)); // Can be interrupted
+        });
+    };
+
+    return (
+        <div>
+            <input onChange={(e) => handleSearch(e.target.value)} />
+            <SearchResultsList query={deferredQuery} results={results} />
+        </div>
+    );
+}
+```
+
+### Diff Algorithm
+
+**React's reconciliation process for efficiently updating the DOM.**
+
+**Reconciliation Rules:**
+```javascript
+// 1. Different element types = complete rebuild
+// Old tree:
+<div>
+    <Counter />
+</div>
+
+// New tree:
+<span>
+    <Counter />
+</span>
+
+// Result: Unmount div and Counter, mount new span and Counter
+
+// 2. Same element type = update props
+// Old: <div className="old" title="Old Title" />
+// New: <div className="new" title="New Title" />
+// Result: Update className and title attributes only
+
+// 3. Component elements = update props and re-render
+// Old: <Counter count={1} />
+// New: <Counter count={2} />
+// Result: Update props and re-render Counter component
+```
+
+**Key Optimization:**
+```javascript
+// Without keys - inefficient
+function TodoList({ todos }) {
+    return (
+        <ul>
+            {todos.map((todo, index) => (
+                <li key={index}> {/* ❌ Index as key */}
+                    <input defaultValue={todo.text} />
+                    <button onClick={() => deleteTodo(todo.id)}>Delete</button>
+                </li>
+            ))}
+        </ul>
+    );
+}
+
+// With proper keys - efficient
+function TodoList({ todos }) {
+    return (
+        <ul>
+            {todos.map(todo => (
+                <li key={todo.id}> {/* ✅ Stable unique key */}
+                    <input defaultValue={todo.text} />
+                    <button onClick={() => deleteTodo(todo.id)}>Delete</button>
+                </li>
+            ))}
+        </ul>
+    );
+}
+
+// When a todo is deleted from the middle:
+// Without keys: React re-renders all subsequent items
+// With keys: React only removes the specific item
+```
+
+**Optimization Strategies:**
+```javascript
+// 1. Stable keys
+const items = data.map(item => (
+    <Item key={item.id} data={item} /> // ✅ Stable
+));
+
+// 2. Avoid inline objects/functions
+// Bad:
+<Component style={{ color: 'red' }} onClick={() => doSomething()} />
+
+// Good:
+const style = { color: 'red' };
+const handleClick = useCallback(() => doSomething(), []);
+<Component style={style} onClick={handleClick} />
+
+// 3. Split components to limit re-render scope
+function App() {
+    const [count, setCount] = useState(0);
+    const [users, setUsers] = useState([]);
+
+    return (
+        <div>
+            <Counter count={count} setCount={setCount} />
+            <UserList users={users} /> {/* Won't re-render when count changes */}
+        </div>
+    );
+}
+```
+
+### Error Boundaries
+
+**Error boundaries catch JavaScript errors in component trees.**
+
+**Class-based Error Boundary:**
+```javascript
+class ErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null, errorInfo: null };
+    }
+
+    static getDerivedStateFromError(error) {
+        // Update state to show error UI
+        return { hasError: true };
+    }
+
+    componentDidCatch(error, errorInfo) {
+        // Log error to error reporting service
+        console.error('Error caught by boundary:', error, errorInfo);
+
+        this.setState({
+            error: error,
+            errorInfo: errorInfo
+        });
+
+        // Report to error tracking service
+        // logErrorToService(error, errorInfo);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="error-boundary">
+                    <h2>Something went wrong!</h2>
+                    <details style={{ whiteSpace: 'pre-wrap' }}>
+                        {this.state.error && this.state.error.toString()}
+                        <br />
+                        {this.state.errorInfo.componentStack}
+                    </details>
+                </div>
+            );
+        }
+
+        return this.props.children;
+    }
+}
+
+// Usage
+function App() {
+    return (
+        <ErrorBoundary>
+            <Header />
+            <MainContent />
+            <Footer />
+        </ErrorBoundary>
+    );
+}
+```
+
+**Hook-based Error Boundary (using library):**
+```javascript
+// Using react-error-boundary library
+import { ErrorBoundary } from 'react-error-boundary';
+
+function ErrorFallback({ error, resetErrorBoundary }) {
+    return (
+        <div role="alert" className="error-fallback">
+            <h2>Oops! Something went wrong:</h2>
+            <pre>{error.message}</pre>
+            <button onClick={resetErrorBoundary}>Try again</button>
+        </div>
+    );
+}
+
+function App() {
+    return (
+        <ErrorBoundary
+            FallbackComponent={ErrorFallback}
+            onError={(error, errorInfo) => {
+                console.error('Error logged:', error, errorInfo);
+            }}
+            onReset={() => {
+                // Reset app state if needed
+                window.location.reload();
+            }}
+        >
+            <MyApp />
+        </ErrorBoundary>
+    );
+}
+```
+
+**What Error Boundaries Catch:**
+```javascript
+// ✅ Error boundaries catch:
+// - Errors in render methods
+// - Errors in lifecycle methods
+// - Errors in constructors
+
+// ❌ Error boundaries do NOT catch:
+// - Event handlers
+// - Asynchronous code (setTimeout, promises)
+// - Server-side rendering errors
+// - Errors in the error boundary itself
+
+// For event handlers, use try-catch:
+function Button() {
+    const handleClick = () => {
+        try {
+            riskyOperation();
+        } catch (error) {
+            console.error('Button click error:', error);
+            // Handle error appropriately
+        }
+    };
+
+    return <button onClick={handleClick}>Click me</button>;
+}
+```
+
 ---
 
 ## CSS
@@ -4231,6 +5197,689 @@ img {
 }
 ```
 
+### Column Layouts
+
+**Creating multi-column layouts with CSS.**
+
+**CSS Multi-Column:**
+```css
+.multi-column {
+    column-count: 3;
+    column-gap: 20px;
+    column-rule: 1px solid #ccc;
+    column-fill: balance;
+}
+
+/* Responsive columns */
+.responsive-columns {
+    column-width: 250px; /* Minimum column width */
+    column-gap: 20px;
+}
+
+/* Control column breaks */
+.no-break {
+    break-inside: avoid;
+    page-break-inside: avoid; /* Fallback */
+}
+
+.break-before {
+    break-before: column;
+}
+```
+
+**Flexbox Columns:**
+```css
+.flex-columns {
+    display: flex;
+    gap: 20px;
+}
+
+.flex-column {
+    flex: 1; /* Equal width columns */
+}
+
+/* Specific column widths */
+.sidebar {
+    flex: 0 0 250px; /* Fixed width sidebar */
+}
+
+.main-content {
+    flex: 1; /* Flexible main content */
+}
+```
+
+**Grid Columns:**
+```css
+.grid-layout {
+    display: grid;
+    grid-template-columns: 250px 1fr 200px; /* Sidebar, main, aside */
+    gap: 20px;
+}
+
+/* Responsive grid columns */
+.responsive-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+```
+
+### CSS Units (px, em, rem, vh, vw)
+
+**Understanding different CSS units and when to use them.**
+
+**Absolute Units:**
+```css
+/* Pixels - absolute unit */
+.pixel-based {
+    width: 300px;
+    height: 200px;
+    font-size: 16px;
+    margin: 10px;
+}
+
+/* Points, inches, centimeters (print media) */
+@media print {
+    .print-text {
+        font-size: 12pt;
+        margin: 1in;
+    }
+}
+```
+
+**Relative Units:**
+```css
+/* em - relative to parent font size */
+.em-based {
+    font-size: 1.2em;    /* 1.2 × parent font size */
+    padding: 0.5em;      /* 0.5 × current font size */
+    margin: 1em 0;       /* 1 × current font size */
+}
+
+/* rem - relative to root font size */
+.rem-based {
+    font-size: 1.5rem;   /* 1.5 × root font size (usually 16px) */
+    padding: 2rem;       /* 2 × root font size */
+    margin: 1rem 0;      /* 1 × root font size */
+}
+
+/* Percentage - relative to parent */
+.percentage-based {
+    width: 50%;          /* 50% of parent width */
+    height: 75%;         /* 75% of parent height */
+    font-size: 120%;     /* 120% of parent font size */
+}
+```
+
+**Viewport Units:**
+```css
+/* Viewport width and height */
+.viewport-units {
+    width: 50vw;         /* 50% of viewport width */
+    height: 100vh;       /* 100% of viewport height */
+    font-size: 4vw;      /* 4% of viewport width */
+}
+
+/* Viewport minimum and maximum */
+.viewport-min-max {
+    font-size: 3vmin;    /* 3% of smaller viewport dimension */
+    padding: 2vmax;      /* 2% of larger viewport dimension */
+}
+
+/* Practical examples */
+.hero-section {
+    height: 100vh;       /* Full viewport height */
+    width: 100vw;        /* Full viewport width */
+}
+
+.responsive-text {
+    font-size: calc(16px + 2vw); /* Fluid typography */
+}
+```
+
+**When to Use Each:**
+```css
+/* Use px for: */
+.borders { border: 1px solid #ccc; }
+.shadows { box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+/* Use em for: */
+.component-spacing {
+    padding: 1em;        /* Scales with component font size */
+    margin-bottom: 0.5em;
+}
+
+/* Use rem for: */
+.consistent-spacing {
+    margin: 1rem 0;      /* Consistent across components */
+    font-size: 1.2rem;   /* Predictable sizing */
+}
+
+/* Use % for: */
+.layout-widths {
+    width: 70%;          /* Responsive layouts */
+}
+
+/* Use vh/vw for: */
+.full-screen {
+    height: 100vh;       /* Full screen sections */
+    width: 100vw;
+}
+```
+
+### Device Pixels and DPR
+
+**Understanding device pixels, CSS pixels, and device pixel ratio.**
+
+**Concepts:**
+```css
+/* CSS pixels vs Device pixels */
+.image {
+    width: 100px;        /* 100 CSS pixels */
+    height: 100px;       /* May be 200+ device pixels on high-DPI displays */
+}
+
+/* High-DPI image handling */
+.logo {
+    background-image: url('logo.png');
+    background-size: 100px 50px;
+}
+
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .logo {
+        background-image: url('logo@2x.png');
+    }
+}
+
+@media (-webkit-min-device-pixel-ratio: 3), (min-resolution: 288dpi) {
+    .logo {
+        background-image: url('logo@3x.png');
+    }
+}
+```
+
+**Responsive Images:**
+```html
+<!-- Using srcset for different DPR -->
+<img src="image.jpg"
+     srcset="image.jpg 1x, image@2x.jpg 2x, image@3x.jpg 3x"
+     alt="Responsive image">
+
+<!-- Using picture element -->
+<picture>
+    <source media="(min-width: 800px)"
+            srcset="large.jpg 1x, large@2x.jpg 2x">
+    <source media="(min-width: 400px)"
+            srcset="medium.jpg 1x, medium@2x.jpg 2x">
+    <img src="small.jpg"
+         srcset="small.jpg 1x, small@2x.jpg 2x"
+         alt="Responsive image">
+</picture>
+```
+
+**JavaScript DPR Detection:**
+```javascript
+// Detect device pixel ratio
+const dpr = window.devicePixelRatio || 1;
+console.log('Device Pixel Ratio:', dpr);
+
+// Load appropriate image based on DPR
+function getImageUrl(baseName, extension = 'jpg') {
+    const dpr = window.devicePixelRatio || 1;
+
+    if (dpr >= 3) {
+        return `${baseName}@3x.${extension}`;
+    } else if (dpr >= 2) {
+        return `${baseName}@2x.${extension}`;
+    } else {
+        return `${baseName}.${extension}`;
+    }
+}
+
+// Usage
+const imageUrl = getImageUrl('logo', 'png');
+document.querySelector('.logo').src = imageUrl;
+```
+
+### CSS3 Features
+
+**Modern CSS3 features and properties.**
+
+**Border Radius and Shadows:**
+```css
+.modern-card {
+    /* Rounded corners */
+    border-radius: 8px;
+    border-radius: 50%; /* Circle */
+    border-radius: 10px 20px 30px 40px; /* Individual corners */
+
+    /* Box shadows */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); /* Inner shadow */
+
+    /* Text shadows */
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+```
+
+**Gradients:**
+```css
+.gradients {
+    /* Linear gradients */
+    background: linear-gradient(to right, #ff0000, #00ff00);
+    background: linear-gradient(45deg, #ff0000, #00ff00, #0000ff);
+    background: linear-gradient(to bottom, #ff0000 0%, #00ff00 50%, #0000ff 100%);
+
+    /* Radial gradients */
+    background: radial-gradient(circle, #ff0000, #00ff00);
+    background: radial-gradient(ellipse at center, #ff0000, #00ff00);
+
+    /* Conic gradients */
+    background: conic-gradient(from 0deg, red, yellow, green, blue, red);
+}
+```
+
+**Transforms:**
+```css
+.transforms {
+    /* 2D transforms */
+    transform: translate(50px, 100px);
+    transform: rotate(45deg);
+    transform: scale(1.5);
+    transform: skew(10deg, 20deg);
+
+    /* 3D transforms */
+    transform: translateZ(50px);
+    transform: rotateX(45deg);
+    transform: rotateY(45deg);
+    transform: rotateZ(45deg);
+
+    /* Combined transforms */
+    transform: translate(50px, 100px) rotate(45deg) scale(1.2);
+
+    /* Transform origin */
+    transform-origin: top left;
+    transform-origin: 50% 50%;
+    transform-origin: center bottom;
+}
+```
+
+**Transitions:**
+```css
+.transitions {
+    transition: all 0.3s ease;
+    transition: opacity 0.5s ease-in-out;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Multiple properties */
+    transition:
+        opacity 0.3s ease,
+        transform 0.3s ease,
+        background-color 0.2s ease;
+}
+
+.transitions:hover {
+    opacity: 0.8;
+    transform: translateY(-2px);
+    background-color: #f0f0f0;
+}
+```
+
+### CSS Animations
+
+**Creating smooth animations and transitions with CSS.**
+
+**CSS Transitions:**
+```css
+.button {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+
+    /* Transition properties */
+    transition: all 0.3s ease;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.button:hover {
+    background-color: #0056b3;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.button:active {
+    transform: translateY(0);
+    transition-duration: 0.1s;
+}
+```
+
+**CSS Keyframe Animations:**
+```css
+/* Define keyframes */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes bounce {
+    0%, 20%, 53%, 80%, 100% {
+        transform: translate3d(0, 0, 0);
+    }
+    40%, 43% {
+        transform: translate3d(0, -30px, 0);
+    }
+    70% {
+        transform: translate3d(0, -15px, 0);
+    }
+    90% {
+        transform: translate3d(0, -4px, 0);
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Apply animations */
+.fade-in {
+    animation: fadeIn 0.6s ease-out;
+}
+
+.bounce {
+    animation: bounce 1s ease-in-out;
+}
+
+.loading-spinner {
+    animation: spin 1s linear infinite;
+}
+
+/* Animation properties */
+.complex-animation {
+    animation-name: fadeIn;
+    animation-duration: 2s;
+    animation-timing-function: ease-in-out;
+    animation-delay: 0.5s;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+    animation-fill-mode: both;
+    animation-play-state: running;
+
+    /* Shorthand */
+    animation: fadeIn 2s ease-in-out 0.5s infinite alternate both;
+}
+```
+
+**Advanced Animation Techniques:**
+```css
+/* Staggered animations */
+.list-item {
+    opacity: 0;
+    animation: fadeIn 0.6s ease-out forwards;
+}
+
+.list-item:nth-child(1) { animation-delay: 0.1s; }
+.list-item:nth-child(2) { animation-delay: 0.2s; }
+.list-item:nth-child(3) { animation-delay: 0.3s; }
+.list-item:nth-child(4) { animation-delay: 0.4s; }
+
+/* Or using CSS custom properties */
+.list-item {
+    animation: fadeIn 0.6s ease-out forwards;
+    animation-delay: calc(var(--index) * 0.1s);
+}
+
+/* 3D animations */
+.card {
+    perspective: 1000px;
+}
+
+.card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+}
+
+.card:hover .card-inner {
+    transform: rotateY(180deg);
+}
+
+.card-front, .card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+}
+
+.card-back {
+    transform: rotateY(180deg);
+}
+
+/* Performance optimizations */
+.optimized-animation {
+    /* Use transform and opacity for best performance */
+    transform: translateZ(0); /* Force hardware acceleration */
+    will-change: transform, opacity; /* Hint to browser */
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .animation {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+```
+
+**JavaScript Animation Control:**
+```css
+/* CSS classes for JavaScript control */
+.slide-enter {
+    transform: translateX(-100%);
+    opacity: 0;
+}
+
+.slide-enter-active {
+    transform: translateX(0);
+    opacity: 1;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.slide-exit {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.slide-exit-active {
+    transform: translateX(100%);
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+/* Animation states */
+.modal {
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.modal.is-open {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+}
+
+.modal.is-closing {
+    opacity: 0;
+    transform: scale(0.8);
+}
+```
+
+### CSS Performance
+
+**Optimizing CSS for better performance.**
+
+**Efficient Selectors:**
+```css
+/* ❌ Inefficient selectors */
+* { margin: 0; }                    /* Universal selector */
+div > div > div > p { color: red; } /* Deep nesting */
+.nav li a:hover { color: blue; }    /* Complex descendant */
+
+/* ✅ Efficient selectors */
+.reset { margin: 0; }               /* Class selector */
+.content-text { color: red; }       /* Direct class */
+.nav-link:hover { color: blue; }    /* Simple class with pseudo */
+
+/* Selector performance (fastest to slowest) */
+/* 1. ID selectors: #header */
+/* 2. Class selectors: .nav */
+/* 3. Type selectors: div */
+/* 4. Adjacent sibling: h1 + p */
+/* 5. Child: ul > li */
+/* 6. Descendant: div p */
+/* 7. Universal: * */
+/* 8. Attribute: [type="text"] */
+/* 9. Pseudo-classes: :hover */
+```
+
+**CSS Architecture:**
+```css
+/* BEM methodology for maintainable CSS */
+.block { }
+.block__element { }
+.block--modifier { }
+
+/* Example */
+.card { }
+.card__header { }
+.card__body { }
+.card__footer { }
+.card--featured { }
+.card--large { }
+
+/* Utility classes */
+.u-margin-bottom-small { margin-bottom: 1rem; }
+.u-text-center { text-align: center; }
+.u-hidden { display: none; }
+
+/* Component-based organization */
+/* components/button.css */
+.btn {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.25rem;
+    cursor: pointer;
+}
+
+.btn--primary { background-color: #007bff; }
+.btn--secondary { background-color: #6c757d; }
+.btn--large { padding: 0.75rem 1.5rem; }
+```
+
+**Critical CSS:**
+```css
+/* Inline critical CSS for above-the-fold content */
+/* This should be inlined in <head> */
+.header {
+    background: #fff;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.hero {
+    height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hero__title {
+    font-size: 3rem;
+    color: white;
+    text-align: center;
+}
+
+/* Non-critical CSS loaded asynchronously */
+/* This can be loaded after page load */
+.footer { /* ... */ }
+.sidebar { /* ... */ }
+.modal { /* ... */ }
+```
+
+**CSS Optimization Techniques:**
+```css
+/* 1. Minimize reflows and repaints */
+.optimized {
+    /* Use transform instead of changing position */
+    transform: translateX(100px); /* ✅ Composite layer */
+    /* left: 100px; ❌ Causes reflow */
+
+    /* Use opacity instead of visibility */
+    opacity: 0; /* ✅ Composite layer */
+    /* visibility: hidden; ❌ Causes repaint */
+}
+
+/* 2. Use will-change for animations */
+.animated-element {
+    will-change: transform, opacity;
+}
+
+/* Remove will-change after animation */
+.animated-element.animation-complete {
+    will-change: auto;
+}
+
+/* 3. Avoid expensive properties */
+.expensive {
+    /* These properties are expensive to animate */
+    /* box-shadow, border-radius, filter, etc. */
+
+    /* Use transform for movement */
+    transform: translateX(10px); /* ✅ */
+    /* margin-left: 10px; ❌ */
+}
+
+/* 4. Use contain property */
+.contained {
+    contain: layout style paint;
+    /* Tells browser this element is isolated */
+}
+
+/* 5. Optimize images */
+.image-container {
+    /* Use object-fit for responsive images */
+    object-fit: cover;
+    object-position: center;
+
+    /* Lazy loading hint */
+    content-visibility: auto;
+    contain-intrinsic-size: 300px 200px;
+}
+```
+
 ---
 
 ## ES6
@@ -4673,6 +6322,296 @@ export default class Component {}
 // Imports
 import Component, { utils, helper } from './module';
 import * as Everything from './module';
+```
+
+### Classes
+
+**ES6 classes provide a cleaner syntax for creating objects and inheritance.**
+
+**Basic Class Syntax:**
+```javascript
+class Person {
+    constructor(name, age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    // Method
+    greet() {
+        return `Hello, I'm ${this.name}`;
+    }
+
+    // Getter
+    get info() {
+        return `${this.name} is ${this.age} years old`;
+    }
+
+    // Setter
+    set age(value) {
+        if (value < 0) {
+            throw new Error('Age cannot be negative');
+        }
+        this._age = value;
+    }
+
+    get age() {
+        return this._age;
+    }
+
+    // Static method
+    static createGuest() {
+        return new Person('Guest', 0);
+    }
+}
+
+// Usage
+const person = new Person('John', 30);
+console.log(person.greet()); // "Hello, I'm John"
+console.log(person.info);    // "John is 30 years old"
+
+const guest = Person.createGuest();
+```
+
+**Inheritance:**
+```javascript
+class Employee extends Person {
+    constructor(name, age, jobTitle, salary) {
+        super(name, age); // Call parent constructor
+        this.jobTitle = jobTitle;
+        this.salary = salary;
+    }
+
+    // Override method
+    greet() {
+        return `${super.greet()}, I'm a ${this.jobTitle}`;
+    }
+
+    // New method
+    getAnnualSalary() {
+        return this.salary * 12;
+    }
+}
+
+const employee = new Employee('Jane', 28, 'Developer', 5000);
+console.log(employee.greet()); // "Hello, I'm Jane, I'm a Developer"
+```
+
+### Generators
+
+**Generators are functions that can pause and resume execution.**
+
+**Basic Generator:**
+```javascript
+function* simpleGenerator() {
+    yield 1;
+    yield 2;
+    yield 3;
+}
+
+const gen = simpleGenerator();
+console.log(gen.next()); // { value: 1, done: false }
+console.log(gen.next()); // { value: 2, done: false }
+console.log(gen.next()); // { value: 3, done: false }
+console.log(gen.next()); // { value: undefined, done: true }
+
+// Using for...of
+for (const value of simpleGenerator()) {
+    console.log(value); // 1, 2, 3
+}
+```
+
+**Practical Examples:**
+```javascript
+// ID generator
+function* idGenerator() {
+    let id = 1;
+    while (true) {
+        yield id++;
+    }
+}
+
+const getId = idGenerator();
+console.log(getId.next().value); // 1
+console.log(getId.next().value); // 2
+
+// Fibonacci sequence
+function* fibonacci() {
+    let a = 0, b = 1;
+    while (true) {
+        yield a;
+        [a, b] = [b, a + b];
+    }
+}
+
+const fib = fibonacci();
+for (let i = 0; i < 10; i++) {
+    console.log(fib.next().value);
+}
+
+// Async data processing
+function* processData(data) {
+    for (const item of data) {
+        const processed = yield item * 2;
+        console.log('Received:', processed);
+    }
+}
+
+const processor = processData([1, 2, 3, 4]);
+console.log(processor.next());      // { value: 2, done: false }
+console.log(processor.next('OK'));  // Logs: "Received: OK"
+```
+
+### Iterators
+
+**Iterators provide a way to access elements of a collection sequentially.**
+
+**Iterator Protocol:**
+```javascript
+// Custom iterator
+function createIterator(array) {
+    let index = 0;
+
+    return {
+        next() {
+            if (index < array.length) {
+                return { value: array[index++], done: false };
+            } else {
+                return { done: true };
+            }
+        }
+    };
+}
+
+const iterator = createIterator([1, 2, 3]);
+console.log(iterator.next()); // { value: 1, done: false }
+console.log(iterator.next()); // { value: 2, done: false }
+console.log(iterator.next()); // { value: 3, done: false }
+console.log(iterator.next()); // { done: true }
+```
+
+**Iterable Protocol:**
+```javascript
+// Custom iterable object
+const range = {
+    start: 1,
+    end: 5,
+
+    [Symbol.iterator]() {
+        let current = this.start;
+        const end = this.end;
+
+        return {
+            next() {
+                if (current <= end) {
+                    return { value: current++, done: false };
+                } else {
+                    return { done: true };
+                }
+            }
+        };
+    }
+};
+
+// Usage
+for (const num of range) {
+    console.log(num); // 1, 2, 3, 4, 5
+}
+
+// Spread operator works too
+console.log([...range]); // [1, 2, 3, 4, 5]
+```
+
+### Set and Map
+
+**New data structures for storing unique values and key-value pairs.**
+
+**Set:**
+```javascript
+// Creating sets
+const set = new Set();
+const setWithValues = new Set([1, 2, 3, 3, 4]); // [1, 2, 3, 4]
+
+// Set methods
+set.add(1);
+set.add(2);
+set.add(2); // Duplicate, won't be added
+console.log(set.size); // 2
+
+console.log(set.has(1)); // true
+set.delete(1);
+console.log(set.has(1)); // false
+
+// Iteration
+for (const value of set) {
+    console.log(value);
+}
+
+// Convert to array
+const array = [...set];
+
+// Practical uses
+const uniqueArray = [...new Set([1, 2, 2, 3, 3, 4])]; // [1, 2, 3, 4]
+
+// Set operations
+const setA = new Set([1, 2, 3]);
+const setB = new Set([3, 4, 5]);
+
+// Union
+const union = new Set([...setA, ...setB]); // [1, 2, 3, 4, 5]
+
+// Intersection
+const intersection = new Set([...setA].filter(x => setB.has(x))); // [3]
+
+// Difference
+const difference = new Set([...setA].filter(x => !setB.has(x))); // [1, 2]
+```
+
+**Map:**
+```javascript
+// Creating maps
+const map = new Map();
+const mapWithValues = new Map([
+    ['key1', 'value1'],
+    ['key2', 'value2']
+]);
+
+// Map methods
+map.set('name', 'John');
+map.set('age', 30);
+map.set(1, 'number key');
+map.set(true, 'boolean key');
+
+console.log(map.get('name')); // 'John'
+console.log(map.has('age'));  // true
+console.log(map.size);        // 4
+
+map.delete('age');
+console.log(map.has('age'));  // false
+
+// Iteration
+for (const [key, value] of map) {
+    console.log(`${key}: ${value}`);
+}
+
+// Get all keys/values
+console.log([...map.keys()]);   // ['name', 1, true]
+console.log([...map.values()]); // ['John', 'number key', 'boolean key']
+
+// Object vs Map
+const obj = {};
+const map2 = new Map();
+
+// Objects have prototype keys
+console.log('toString' in obj); // true
+
+// Maps only have what you put in
+console.log(map2.has('toString')); // false
+
+// Any type can be a key in Map
+const keyObj = {};
+const keyFunc = function() {};
+map2.set(keyObj, 'object key');
+map2.set(keyFunc, 'function key');
 ```
 
 ---
@@ -6193,6 +8132,436 @@ interface PaginatedResponse<T> extends ApiResponse<T[]> {
 // Usage
 type UserListResponse = PaginatedResponse<User>;
 type SingleUserResponse = ApiResponse<User>;
+```
+
+### Advanced Types
+
+**TypeScript provides powerful advanced type features.**
+
+**Conditional Types:**
+```typescript
+// Basic conditional type
+type IsString<T> = T extends string ? true : false;
+
+type Test1 = IsString<string>; // true
+type Test2 = IsString<number>; // false
+
+// Practical conditional types
+type NonNullable<T> = T extends null | undefined ? never : T;
+type ArrayElement<T> = T extends (infer U)[] ? U : never;
+
+type StringArray = string[];
+type ElementType = ArrayElement<StringArray>; // string
+
+// Distributive conditional types
+type ToArray<T> = T extends any ? T[] : never;
+type StrArrOrNumArr = ToArray<string | number>; // string[] | number[]
+```
+
+**Mapped Types:**
+```typescript
+// Basic mapped type
+type Readonly<T> = {
+    readonly [P in keyof T]: T[P];
+};
+
+type Partial<T> = {
+    [P in keyof T]?: T[P];
+};
+
+type Required<T> = {
+    [P in keyof T]-?: T[P];
+};
+
+// Custom mapped types
+type Stringify<T> = {
+    [K in keyof T]: string;
+};
+
+type Nullify<T> = {
+    [K in keyof T]: T[K] | null;
+};
+
+interface User {
+    id: number;
+    name: string;
+    email: string;
+}
+
+type StringUser = Stringify<User>; // { id: string; name: string; email: string; }
+type NullableUser = Nullify<User>; // { id: number | null; name: string | null; email: string | null; }
+```
+
+**Template Literal Types:**
+```typescript
+// Template literal types
+type EventName<T extends string> = `on${Capitalize<T>}`;
+type ClickEvent = EventName<"click">; // "onClick"
+
+// Route parameter extraction
+type ExtractRouteParams<T extends string> =
+    T extends `${string}/:${infer Param}/${infer Rest}`
+        ? { [K in Param | keyof ExtractRouteParams<`/${Rest}`>]: string }
+        : T extends `${string}/:${infer Param}`
+        ? { [K in Param]: string }
+        : {};
+
+type UserRouteParams = ExtractRouteParams<"/users/:id/posts/:postId">;
+// { id: string; postId: string }
+
+// SQL query builder types
+type SQLOperator = "=" | "!=" | ">" | "<" | ">=" | "<=";
+type WhereClause<T extends string> = `${T} ${SQLOperator} ?`;
+
+type UserWhereClause = WhereClause<"age">; // "age = ?" | "age != ?" | etc.
+```
+
+### Enums
+
+**Enums allow defining named constants.**
+
+**Numeric Enums:**
+```typescript
+enum Direction {
+    Up,    // 0
+    Down,  // 1
+    Left,  // 2
+    Right  // 3
+}
+
+// Custom numeric values
+enum Status {
+    Pending = 1,
+    Approved = 2,
+    Rejected = 3
+}
+
+// Usage
+function move(direction: Direction) {
+    switch (direction) {
+        case Direction.Up:
+            return "Moving up";
+        case Direction.Down:
+            return "Moving down";
+        case Direction.Left:
+            return "Moving left";
+        case Direction.Right:
+            return "Moving right";
+    }
+}
+
+console.log(move(Direction.Up)); // "Moving up"
+console.log(Direction.Up);       // 0
+console.log(Direction[0]);       // "Up"
+```
+
+**String Enums:**
+```typescript
+enum Color {
+    Red = "red",
+    Green = "green",
+    Blue = "blue"
+}
+
+enum ApiEndpoint {
+    Users = "/api/users",
+    Posts = "/api/posts",
+    Comments = "/api/comments"
+}
+
+// Usage
+function fetchData(endpoint: ApiEndpoint) {
+    return fetch(endpoint);
+}
+
+fetchData(ApiEndpoint.Users); // fetch("/api/users")
+```
+
+**Const Enums:**
+```typescript
+// Const enums are inlined at compile time
+const enum LogLevel {
+    Error,
+    Warning,
+    Info,
+    Debug
+}
+
+// This code:
+console.log(LogLevel.Error);
+
+// Compiles to:
+console.log(0 /* Error */);
+```
+
+**Enum Best Practices:**
+```typescript
+// Use string enums for better debugging
+enum Theme {
+    Light = "light",
+    Dark = "dark",
+    Auto = "auto"
+}
+
+// Union types as alternative to enums
+type ThemeType = "light" | "dark" | "auto";
+
+// Enum with methods (using namespace)
+enum Planet {
+    Mercury = "mercury",
+    Venus = "venus",
+    Earth = "earth"
+}
+
+namespace Planet {
+    export function getDistance(planet: Planet): number {
+        switch (planet) {
+            case Planet.Mercury: return 57.9;
+            case Planet.Venus: return 108.2;
+            case Planet.Earth: return 149.6;
+            default: return 0;
+        }
+    }
+}
+
+console.log(Planet.getDistance(Planet.Earth)); // 149.6
+```
+
+### Decorators
+
+**Decorators provide a way to add metadata and modify classes and methods.**
+
+**Class Decorators:**
+```typescript
+// Enable experimental decorators in tsconfig.json
+// "experimentalDecorators": true
+
+function sealed(constructor: Function) {
+    Object.seal(constructor);
+    Object.seal(constructor.prototype);
+}
+
+@sealed
+class Greeter {
+    greeting: string;
+    constructor(message: string) {
+        this.greeting = message;
+    }
+    greet() {
+        return "Hello, " + this.greeting;
+    }
+}
+```
+
+**Method Decorators:**
+```typescript
+function log(target: any, propertyName: string, descriptor: PropertyDescriptor) {
+    const method = descriptor.value;
+
+    descriptor.value = function (...args: any[]) {
+        console.log(`Calling ${propertyName} with arguments:`, args);
+        const result = method.apply(this, args);
+        console.log(`${propertyName} returned:`, result);
+        return result;
+    };
+}
+
+class Calculator {
+    @log
+    add(a: number, b: number): number {
+        return a + b;
+    }
+
+    @log
+    multiply(a: number, b: number): number {
+        return a * b;
+    }
+}
+
+const calc = new Calculator();
+calc.add(2, 3); // Logs method call and result
+```
+
+**Property Decorators:**
+```typescript
+function readonly(target: any, propertyName: string) {
+    Object.defineProperty(target, propertyName, {
+        writable: false
+    });
+}
+
+function validate(target: any, propertyName: string) {
+    let value = target[propertyName];
+
+    Object.defineProperty(target, propertyName, {
+        get: () => value,
+        set: (newValue) => {
+            if (typeof newValue !== 'string') {
+                throw new Error(`${propertyName} must be a string`);
+            }
+            value = newValue;
+        }
+    });
+}
+
+class User {
+    @readonly
+    id: number = Math.random();
+
+    @validate
+    name: string = "";
+}
+```
+
+### Namespaces and Modules
+
+**Organizing code with namespaces and modules.**
+
+**Namespaces:**
+```typescript
+namespace Geometry {
+    export interface Point {
+        x: number;
+        y: number;
+    }
+
+    export class Circle {
+        constructor(public center: Point, public radius: number) {}
+
+        area(): number {
+            return Math.PI * this.radius ** 2;
+        }
+    }
+
+    export namespace Utils {
+        export function distance(p1: Point, p2: Point): number {
+            return Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2);
+        }
+    }
+}
+
+// Usage
+const point: Geometry.Point = { x: 0, y: 0 };
+const circle = new Geometry.Circle(point, 5);
+const dist = Geometry.Utils.distance({ x: 0, y: 0 }, { x: 3, y: 4 });
+```
+
+**Module Augmentation:**
+```typescript
+// Extending existing modules
+declare global {
+    interface Array<T> {
+        first(): T | undefined;
+        last(): T | undefined;
+    }
+}
+
+Array.prototype.first = function() {
+    return this[0];
+};
+
+Array.prototype.last = function() {
+    return this[this.length - 1];
+};
+
+// Now available on all arrays
+const numbers = [1, 2, 3];
+console.log(numbers.first()); // 1
+console.log(numbers.last());  // 3
+```
+
+### TypeScript with React
+
+**Using TypeScript with React for type-safe components.**
+
+**Component Props:**
+```typescript
+interface ButtonProps {
+    children: React.ReactNode;
+    onClick: () => void;
+    variant?: 'primary' | 'secondary';
+    disabled?: boolean;
+}
+
+const Button: React.FC<ButtonProps> = ({
+    children,
+    onClick,
+    variant = 'primary',
+    disabled = false
+}) => {
+    return (
+        <button
+            onClick={onClick}
+            disabled={disabled}
+            className={`btn btn-${variant}`}
+        >
+            {children}
+        </button>
+    );
+};
+
+// Usage
+<Button onClick={() => console.log('clicked')} variant="secondary">
+    Click me
+</Button>
+```
+
+**Hooks with TypeScript:**
+```typescript
+// useState with explicit types
+const [user, setUser] = useState<User | null>(null);
+const [loading, setLoading] = useState<boolean>(false);
+
+// useRef with DOM elements
+const inputRef = useRef<HTMLInputElement>(null);
+
+// Custom hooks
+function useApi<T>(url: string): {
+    data: T | null;
+    loading: boolean;
+    error: string | null;
+} {
+    const [data, setData] = useState<T | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        fetch(url)
+            .then(response => response.json())
+            .then((data: T) => {
+                setData(data);
+                setLoading(false);
+            })
+            .catch((error: Error) => {
+                setError(error.message);
+                setLoading(false);
+            });
+    }, [url]);
+
+    return { data, loading, error };
+}
+
+// Usage
+interface User {
+    id: number;
+    name: string;
+    email: string;
+}
+
+function UserProfile({ userId }: { userId: number }) {
+    const { data: user, loading, error } = useApi<User>(`/api/users/${userId}`);
+
+    if (loading) return <div>Loading...</div>;
+    if (error) return <div>Error: {error}</div>;
+    if (!user) return <div>User not found</div>;
+
+    return (
+        <div>
+            <h1>{user.name}</h1>
+            <p>{user.email}</p>
+        </div>
+    );
+}
 ```
 
 ---
